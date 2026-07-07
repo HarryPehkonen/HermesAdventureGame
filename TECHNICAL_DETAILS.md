@@ -52,8 +52,9 @@ breakage with apostrophes in generated prose).
 
 | Command | Input | Output (on success) |
 |---|---|---|
-| `game.py init` | — | seeds DB if empty (idempotent); `{"ok": true, "new_game": bool}` |
-| `game.py reset` | — | deletes all rows and re-seeds (player death / restart) |
+| `game.py init` | optional `WorldInit` JSON on stdin | seeds DB if empty — from the payload (custom campaign) or the built-in default; `{"ok": true, "new_game": bool}`. A payload against an already-seeded DB fails loudly with `already_seeded` (never silently ignored). |
+| `game.py reset` | optional `WorldInit` JSON on stdin | wipes all rows and re-seeds. No payload = **replays the stored campaign** (same theme, room, loadout); with payload = starts a different campaign |
+| `game.py export-world` | — | prints the stored `WorldInit` payload — shareable; another player pipes it to `init` |
 | `game.py state` | — | full situation: current room, exits (with lock/frontier status), room entities, inventory, hp, flags — everything needed to narrate a turn |
 | `game.py move <dir>` | direction arg | one of: `{"ok":true,"moved":true,"room":{...}}` · `{"ok":true,"needs_generation":true,"context":{...}}` · `{"ok":false,"error":"no_exit"|"locked",...}` |
 | `game.py create-room <dir>` | `RoomGeneration` JSON on stdin | validates, writes node + edges + entities transactionally, moves player; returns the new room state |
@@ -70,12 +71,21 @@ have an exit facing the target). Room-at-target-already-exists is handled
 inside `move` (loops close automatically; see §4) — `needs_generation` is only
 returned when the target coordinates are truly empty.
 
-**Seed content:** `init` hardcodes (in `config.py`) the starting zone from
-PLAN.md Phase 4 — zone "Mechanical Spire", an ancient vertical labyrinth of
-clockwork gears and leaking steam — plus one handcrafted starting room at
-(0, 0, 0) ("Rust-Chamber", steam-hissing pipes, steel-grate floor) with 3
-frontier exits (north, east, up) and no entities. Everything beyond that
-first room is agent-generated at play time.
+**Seed content:** campaigns are seeded from a `WorldInit` payload (§2) —
+zone theme, starting room at (0, 0, 0), and starting inventory — negotiated
+with the player in SKILL.md's Lobby Mode and piped to `init`. When no payload
+is supplied, `init` falls back to the built-in default campaign hardcoded in
+`config.py` (zone "Mechanical Spire" from PLAN.md Phase 4; starting room
+"Rust-Chamber" with 3 frontier exits and no entities). Either way the payload
+is **persisted** in `game_config.world_init_json`, so `reset` can replay the
+same campaign and `export-world` can share it. Everything beyond the starting
+room is agent-generated at play time — a replay of the same campaign
+regenerates a fresh world beyond room one.
+
+**Stdin payload detection** (`init`/`reset`): a TTY or an empty/whitespace
+pipe means "no payload"; only actual stdin content is parsed as `WorldInit`.
+Never require a payload — agent subprocesses routinely run with an empty
+pipe or `/dev/null` on stdin.
 
 ## 2. Proposal schemas (validated with Pydantic inside the CLI)
 
@@ -92,6 +102,7 @@ class GeneratedEntity(BaseModel):
     can_pickup: bool
     is_blocking: bool
     solution_condition: Optional[str] = None   # obstacles only
+    blocks_direction: Optional[Direction] = None  # obstacles only; must be one of this room's exits
     traits: list[str] = []
 
 class RoomGeneration(BaseModel):
@@ -101,13 +112,35 @@ class RoomGeneration(BaseModel):
     entities: list[GeneratedEntity]   # keep to 0-2
 
 class StateChanges(BaseModel):
-    obstacle_cleared_entity_id: Optional[int] = None
+    obstacles_cleared_entity_ids: list[int] = []   # may clear several per turn
     damage_to_player: int = 0                  # clamped to 0..100
+    healing_to_player: int = 0                 # clamped to 0..100; HP capped at max_hp
     items_removed_from_inventory: list[int] = []   # entity IDs
     items_added_to_inventory: list[int] = []       # must be in current room
     entities_destroyed: list[int] = []
     flags_set: dict[str, bool] = {}
 ```
+
+```python
+class WorldInit(BaseModel):
+    zone_name: str
+    zone_description: str
+    global_theme_rules: str
+    starting_room: RoomGeneration
+    starting_inventory: list[GeneratedEntity] = []
+```
+
+`WorldInit` validators: `starting_room.exits` must be non-empty (no softlocked
+starts); `starting_inventory` entries must be `type: "item"`; and starting-room
+obstacles' `blocks_direction` must be in `starting_room.exits` — the seed room
+has no implicit return direction, so this check lives at the model level here,
+unlike `RoomGeneration` (next note).
+
+Note on `blocks_direction` validation for `RoomGeneration`: the Pydantic layer
+does **not** check `blocks_direction ∈ exits` — `create-room` does, *after*
+appending the implicit return direction. This allows a cave-in/trap room that
+blocks the way the player came in without the agent listing that direction in
+`exits`.
 
 These schemas are documented verbatim in `SKILL.md` so the agent emits them
 directly. Validation failures return `{"ok": false, "error": ...}` with a
@@ -154,22 +187,36 @@ CREATE TABLE IF NOT EXISTS edges (
         CHECK (direction IN ('north','south','east','west','up','down')),
     is_locked INTEGER NOT NULL DEFAULT 0,
     lock_condition TEXT,
+    blocking_entity_id INTEGER,          -- the obstacle that locks this edge, if any
     PRIMARY KEY (from_node_id, direction),
     FOREIGN KEY (from_node_id) REFERENCES nodes(id) ON DELETE CASCADE,
-    FOREIGN KEY (to_node_id) REFERENCES nodes(id) ON DELETE CASCADE
+    FOREIGN KEY (to_node_id) REFERENCES nodes(id) ON DELETE CASCADE,
+    FOREIGN KEY (blocking_entity_id) REFERENCES entities(id) ON DELETE SET NULL
 );
 ```
 
 No edge row = wall (no generation, no LLM effort). Frontier = generate.
 Target set = move (if unlocked).
 
-### 3.3 `player_state`: enforce the singleton
+### 3.3 `blocks_direction`: linking an obstacle to the exit it locks
+
+An obstacle only locks movement when the agent sets `blocks_direction` to one
+of the room's own `exits`. At `create-room` time: for that direction's edge,
+set `is_locked = 1`, `lock_condition = solution_condition`, and
+`blocking_entity_id = <the new entity's id>` — on **both** rows of the pair
+(the reverse edge is locked from the other side too; a hatch blocks passage
+either direction until cleared). `apply`'s `obstacles_cleared_entity_ids`
+finds the edge pairs by `blocking_entity_id` and unlocks both rows of each. An obstacle with
+`is_blocking = true` but no `blocks_direction` is narrative-only (blocks
+*access to something in the room*, not movement) and locks nothing.
+
+### 3.4 `player_state`: enforce the singleton
 
 ```sql
 id INTEGER PRIMARY KEY CHECK (id = 1)
 ```
 
-### 3.4 New table: `turn_log`
+### 3.5 New table: `turn_log`
 
 Player input + narrative per turn. Gives the agent continuity across turns
 (and across Hermes Agent context resets — the DB, not the agent's memory, is
@@ -187,6 +234,14 @@ CREATE TABLE IF NOT EXISTS turn_log (
 );
 ```
 
+### 3.6 `game_config`: persist the campaign seed
+
+`game_config` gains `world_init_json TEXT NOT NULL` — the exact `WorldInit`
+payload the campaign was seeded from. `reset` (no payload) replays it;
+`export-world` prints it for sharing. The full SQLite DB file remains the
+save game: copying `hermes_game.db` transfers a campaign *in progress*, while
+the exported `WorldInit` shares a campaign *from the beginning*.
+
 Everything else in the PLAN.md schema stands as written.
 
 ## 4. Movement & generation algorithm (inside the CLI)
@@ -200,9 +255,11 @@ On `move <direction>` from node at `(x, y, z)`:
 2. Frontier edge: compute target coordinates from the offset table and
    **check `nodes` for an existing room there** — loops can make a frontier
    point at a room generated from another side. If found *and* it has a
-   matching frontier back toward us, link both edge pairs and move (no
-   generation). If found but walled on that side, return `no_exit` and close
-   our frontier.
+   matching frontier back toward us, link both edge pairs, carrying the
+   neighbor frontier's lock state onto our side; if that frontier was locked,
+   return `locked` without moving (a lock blocks passage in either direction,
+   §3.3), otherwise move (no generation). If found but walled on that side,
+   return `no_exit` and close our frontier.
 3. Truly empty → return `needs_generation` + context (§1).
 
 On `create-room <direction>` (agent has invented the room):
@@ -210,29 +267,47 @@ On `create-room <direction>` (agent has invented the room):
 1. Re-verify the target coordinates are still empty and the frontier still
    exists (defends against duplicate/replayed calls).
 2. In **one transaction**: insert the node; force the return direction into
-   `exits`; for each exit insert an edge — pairing with an existing neighbor
-   only if the neighbor has a matching frontier toward us (a neighbor's wall
-   stays a wall), otherwise a frontier; insert entities (`holder='room'`);
-   resolve the crossed edge pair; move the player.
+   `exits`; insert entities (`holder='room'`) first so their IDs exist; for
+   each exit insert an edge pair — pairing with an existing neighbor only if
+   the neighbor has a matching frontier toward us (a neighbor's wall stays a
+   wall), otherwise a frontier; for any entity with `blocks_direction` set,
+   lock that edge pair per §3.3; resolve the crossed edge pair; move the
+   player.
 3. Return the new room state.
 
 ## 5. `apply` validation rules
+
+**Dead-player gate:** once HP is 0, `move`, `take`, `create-room`, and
+`apply` all return `{"ok": false, "error": "player_dead"}` — the engine
+enforces death mechanically rather than trusting the agent to notice the
+flag. `state`, `log`, and `reset` remain available (the agent needs them to
+narrate the death and restart).
 
 Each sub-change is validated independently; invalid ones are **rejected and
 reported**, valid ones still apply — the turn never hard-fails because the
 agent hallucinated one entity ID.
 
 - `items_added_to_inventory`: entity must be `holder='room'` in the *current*
-  room; obstacles/NPCs are never takeable.
+  room; obstacles/NPCs are never takeable. `can_pickup` is **not** checked
+  here — `apply` is the referee's channel, and the agent has already judged
+  the acquisition plausible (e.g. prying a fixed part loose). Only the
+  mechanical `take` command enforces `can_pickup`.
 - `items_removed_from_inventory`: entity must be `holder='player'`. Removal
   sets `holder='gone'` unless also listed in a room drop (v1: gone).
-- `obstacle_cleared_entity_id`: must be an obstacle in the current room; sets
-  `is_cleared: true` in `properties_json` and unlocks the associated edge
-  **pair** if one references it.
-- `entities_destroyed`: must be in the current room or inventory → `holder='gone'`.
-- `damage_to_player`: clamped 0–100; HP floor 0. The response includes
-  `"player_dead": true` when HP hits 0 — the agent narrates death and offers
-  a restart via `game.py reset`.
+- `obstacles_cleared_entity_ids`: each must be an obstacle in the current
+  room; sets `is_cleared: true` in `properties_json` and, if any edge pair
+  has `blocking_entity_id` equal to that entity, unlocks both rows of the
+  pair (§3.3). A list — one clever action may clear several obstacles.
+- `entities_destroyed`: must be in the current room or inventory →
+  `holder='gone'`. A destroyed entity also unlocks any edges it was blocking
+  (same unlock as clearing) — the row survives as `holder='gone'`, so the
+  FK's `ON DELETE SET NULL` never fires and without this the door would jam
+  permanently.
+- `damage_to_player` / `healing_to_player`: each clamped 0–100, then applied
+  as a **net** change (`hp - damage + healing`) clamped to `0..max_hp` — same
+  -turn healing offsets damage but can't revive through a lethal net total or
+  overheal past `max_hp`. The response includes `"player_dead": true` when HP
+  hits 0 — the agent narrates death and offers a restart via `game.py reset`.
 - `flags_set`: merged into `state_flags_json` (no validation — free namespace).
 
 ## 6. SKILL.md (the agent-facing contract)
