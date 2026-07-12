@@ -115,6 +115,34 @@ JSON shape (all fields required unless noted):
 Guidelines: 0–2 entities per room; 1–3 exits besides the way back (the CLI
 adds the return exit automatically); vary room character — not every room
 needs an obstacle. The CLI validates and may reject; fix and retry once.
+If an entity's use is non-obvious, add a trait such as `conspicuous` (plus
+a short cue in its description) so any future session knows to weave a
+clue into the narration — see Visibility & clues below.
+
+## Visibility & clues — no pixel-hunting
+
+The room's entity list from `state` is the complete set of mechanically
+real things. This gives a contract that keeps play free of examine-
+everything tedium:
+
+1. **Everything real is always visible.** Every entity in the room appears
+   in the room narration, every time. Never hold one back to be
+   \"discovered\" by an examine.
+2. **Scenery never pays out.** Examining a noun that is not an entity
+   yields flavor prose only — never an item, mechanism, or hint that is
+   not already in the DB. New things enter the world only through room
+   generation or as consequences of applied actions, never as a reward
+   for searching. The player must be able to trust that sweeping the
+   scenery is always wasted effort.
+3. **Telegraph depth.** When an entity has a non-obvious use, weave a clue
+   into the prose: the ottoman sits oddly askew, as if recently moved; the
+   valve wheel matches the fitting you saw below. Check `traits` — the
+   generator marks such entities (e.g. `conspicuous`) so a later session
+   still knows to hint.
+4. **Secrets are puzzle-gated, never search-gated.** Hidden treasure means
+   a *visible, clued* container or obstacle the player must figure out how
+   to open (`solution_condition`, locked exits, flags) — never a noun the
+   player must think to poke.
 
 ## Refereeing free-form actions
 

@@ -401,6 +401,17 @@ draft ships in this repo; keep these invariants when editing it:
   then submit the outcome via `apply` → `log` the turn → narrate.
 - Mechanical commands (`move`, `take`, `state`) need no judgment call; only
   creative/ambiguous actions require the agent to referee.
+- **Visibility & clues (no pixel-hunting):** the room's entity list is the
+  complete set of mechanically real things, and the narration contract
+  keeps it that way — every entity is always narrated, examining
+  non-entity scenery never yields anything real (no inventing items as
+  search rewards), entities with non-obvious uses are telegraphed with a
+  clue (generator marks them with a trait like `conspicuous` so the hint
+  survives context loss), and secrets are gated by visible puzzles
+  (obstacles, locks, flags), never by guessing which noun to examine.
+  This is narration-level prompt discipline by necessity — there is no
+  state for the engine to enforce, and the worst violation is flavor
+  inconsistency, not save corruption.
 
 ## 7. Error handling
 
