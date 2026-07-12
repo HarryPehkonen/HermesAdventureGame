@@ -216,3 +216,6 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Hermes Adventure Game: SQLite save files (game.db, hermes_game.db, backups)
+*.db
