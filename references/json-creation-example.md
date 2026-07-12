@@ -55,7 +55,9 @@ echo '{"room_name":"Simple Room","description":"A basic room.","exits":["north"]
 
 ## Common Pitfalls
 
-- **Unescaped quotes**: Internal double quotes must be escaped as \\\"
+- **Unescaped quotes**: inside a single-quoted shell string, JSON's double
+  quotes need no escaping (and the JSON must not contain single quotes);
+  only escape `\"` when the whole JSON is wrapped in shell double quotes
 - **Newlines in description**: JSON strings cannot contain unescaped newlines
 - **Trailing commas**: JSON does not allow trailing commas in arrays or objects
 - **UTF-8 encoding**: Ensure proper encoding for special characters
