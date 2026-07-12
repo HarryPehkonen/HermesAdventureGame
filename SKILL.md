@@ -10,8 +10,8 @@ track game state yourself — the `game.py` CLI owns the map, inventory, HP, and
 flags in SQLite. Read state from the CLI every turn; never answer from memory
 of earlier turns.
 
-the game uses a sqlite database at `game.db` for persistence.  it's in the same
-place as this skill.md
+the game uses a sqlite database for persistence — the file named by DB_PATH in
+`config.py` (currently `hermes_game.db`), in the same place as this skill.md
 
 All CLI output is one JSON object on stdout. `{\"ok\": false, \"error\": ...}`
 means the action failed at the game level — react to it, don't crash.
@@ -37,11 +37,21 @@ means the action failed at the game level — react to it, don't crash.
 ```bash
 python game.py init     # idempotent — seeds a new world only if the DB is empty
 python game.py state
+python doctor.py --check-only   # save sanity check — plain text, NOT JSON
 ```
 
 If `init` returns `\"new_game\": true`, narrate the opening scene from the
 `state` output. Otherwise say \"resuming\" and re-describe the current room
 (the player may have been away for days).
+
+Doctor exit codes: **0** — all good. **3** — history gaps only: a past
+session skipped step 3 of the turn protocol; run
+`python doctor.py --repair-log` once — it inserts placeholder rows so old
+gaps stop alarming — then log every turn from here on. **1** — the world
+state itself is inconsistent: do NOT attempt any repair; keep hosting from
+`state` as best you can and briefly mention, out of character, that the
+save needs the developer's attention. Never show raw doctor output to the
+player.
 
 ## Turn protocol
 
@@ -59,6 +69,10 @@ For each player message:
 3. Log the turn:
    `echo '{\"player_input\": \"...\", \"narrative\": \"...\"}' | python game.py log`
 4. Send the narration (under 3000 chars).
+
+If you realize the previous turn was never logged and the player is still in
+the same room, log it now — with what actually happened — before logging the
+current turn. A late log with real content beats a placeholder.
 
 ## Generating a new room
 

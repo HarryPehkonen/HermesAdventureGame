@@ -336,6 +336,49 @@ draft ships in this repo; keep these invariants when editing it:
   once; if it still fails, narrate around it ("Nothing happens.") rather than
   surfacing errors to the player.
 
+## 7.5 doctor.py (save inspector / consistency checker)
+
+A separate human-facing script, deliberately **not** a `game.py` subcommand:
+`game.py`'s stdout is a strict one-JSON-object contract, and mixing in a
+plain-text report risks the agent confusing the two.
+
+- `python doctor.py` — short summary (which DB file, campaign, player, room,
+  HP, inventory, world stats, turn count) plus any failed checks.
+- `-v` / `--verbose` — adds the full room graph, inventory with descriptions,
+  destroyed entities, and the complete turn history.
+- `--check-only` — checks only, each failure printed with its reason.
+- `--repair-log` — insert placeholder turn_log rows for history gaps, then
+  re-run the checks (see below).
+- `--db PATH` — inspect another save; defaults to `config.DB_PATH` so it
+  always looks at the same file `game.py` uses.
+- Exit codes: 0 all checks passed, 1 an integrity check failed, 2 DB
+  missing, 3 only history-gap checks failed. Read-only apart from
+  `--repair-log`, which touches nothing but turn_log.
+
+Findings come in two kinds with different lifecycles:
+
+- **Integrity** (exit 1): the current world state is inconsistent —
+  edge-pair reciprocity/geometry/lock symmetry (§3.2, §3.3), locks pointing
+  at destroyed or already-cleared blockers, entity holder/node_id
+  consistency (§3.1), JSON validity, player HP/position sanity. Never
+  auto-repaired; the agent must leave these to the developer.
+- **History gaps** (exit 3): turn_log is incomplete — a visited room with no
+  logged turns, or the player having moved since the last log entry.
+  Heuristic, not proof: turn_log is itself the only record of turns. A gap
+  is a permanent scar, so without repair it would fail every future check
+  forever and train everyone to ignore the alarm. `--repair-log` plugs old
+  gaps with clearly-marked placeholder rows (`player_input` =
+  `(turn not logged)`); any *new* gap fails again, which is the regression
+  signal that matters. The summary reports the accumulated gap-marker count
+  as a sloppiness audit trail.
+
+SKILL.md tells the agent: run `doctor.py --check-only` when starting or
+resuming a session; on exit 3 run `--repair-log` once and move on; on exit 1
+repair nothing and alert the player out of character. Mid-session, a
+just-missed log entry should instead be logged late with its real content
+while it is still in the agent's context (only sound if the player is still
+in the same room, since `log` stamps the current node).
+
 ## 8. File layout & build order
 
 | Step | File | Contents |
@@ -346,6 +389,7 @@ draft ships in this repo; keep these invariants when editing it:
 | 4 | `engine.py` | coordinate math, movement/generation logic (§4), apply rules (§5) |
 | 5 | `game.py` | argparse CLI, stdin JSON handling, JSON output (§1) |
 | 6 | `SKILL.md` | agent contract (§6) — draft exists; finalize against the built CLI |
+| 7 | `doctor.py` | save inspector & consistency checks (§7.5), human-readable output |
 
 Dependencies: stdlib + `pydantic` only. Each step should be testable before
 the next: pytest for edge-pair consistency, holder transitions, frontier
