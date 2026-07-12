@@ -1,0 +1,49 @@
+{
+  "zone_name": "Blackthorn Manor",
+  "zone_description": "A candlelit country house where the clocks stopped the night something unforgivable happened, and never started again.",
+  "global_theme_rules": "Rooms are the halls, chambers, cellars, and attics of Blackthorn Manor. North/south/east/west cross a floor; up/down are the great stair, the servants' stair, and the cellar steps. Gothic and candlelit: dust sheets, stopped clocks, portraits whose subjects share a family jaw. The supernatural is real but bound by house logic — ghosts are npc entities with wants and grievances, and oppressive cold, sourceless dread, or rooms that refuse to open are obstacle entities, released by flags like seance_held or true_name_spoken. Violence solves nothing here; attention and understanding do. Keep it 1890s: oil lamps and letters, no modern devices. The curse lifts — curse_lifted — only when the wrong done in this house is named aloud and set right.",
+  "starting_room": {
+    "room_name": "Entrance Hall",
+    "description": "A high entrance hall where your footsteps wake echoes that take too long to die. A grand staircase climbs into darkness, doorways open east and north beneath unlit sconces, and every piece of furniture wears a dust sheet like a shroud.",
+    "exits": ["north", "east", "up"],
+    "entities": [
+      {
+        "name": "shrouded portrait",
+        "type": "item",
+        "description": "A tall portrait under a dust sheet that has slipped at one corner, showing a painted hand wearing a signet ring — and, below the frame, a brass plate someone has deliberately scratched illegible.",
+        "can_pickup": false,
+        "is_blocking": false,
+        "solution_condition": null,
+        "blocks_direction": null,
+        "cleared_by_flag": null,
+        "traits": ["conspicuous"]
+      }
+    ]
+  },
+  "starting_inventory": [
+    {
+      "name": "tarnished candelabra",
+      "type": "item",
+      "description": "A three-branched candelabra with fresh candles, left for you on the hall table as if you were expected.",
+      "can_pickup": true,
+      "is_blocking": false,
+      "solution_condition": null,
+      "blocks_direction": null,
+      "cleared_by_flag": null,
+      "traits": ["light source"]
+    },
+    {
+      "name": "housekeeper's letter",
+      "type": "item",
+      "description": "A letter in a careful, frightened hand: '...none of us will set foot past the gate now. If you truly mean to stay the night, begin in the cellar. It began in the cellar.'",
+      "can_pickup": true,
+      "is_blocking": false,
+      "solution_condition": null,
+      "blocks_direction": null,
+      "cleared_by_flag": null,
+      "traits": ["conspicuous", "readable"]
+    }
+  ],
+  "win_flag": "curse_lifted",
+  "win_message": "The name hangs in the air for one long moment — and then every stopped clock in Blackthorn Manor begins to tick at once. Warmth creeps back into the walls, the portraits are only paintings again, and somewhere upstairs a window opens on its own to let the morning in. The house is at peace. You've won."
+}

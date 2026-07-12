@@ -1,0 +1,38 @@
+{
+  "zone_name": "DSV Erebus",
+  "zone_description": "A powerless deep-space freighter adrift in the black, silent except for the tick of cooling metal.",
+  "global_theme_rules": "Every room is one compartment of the freighter Erebus: corridors, machine spaces, holds, crew decks. North/south/east/west run along a deck; up/down are ladderways and access shafts between decks, and the main reactor lies deep below the crew spaces. The ship is dead: cold, silence, drifting dust, emergency lighting at best. Keep base descriptions to permanent structure only — darkness, vacuum, depressurized or irradiated sections are obstacle entities, and prefer cleared_by_flag with flags like aux_power_restored or atmosphere_cycled so restoring one system opens whole sections at once. Technology is worn, industrial, and plausible; no aliens, no magic. Progress should trace a repair arc — find auxiliary power, restore life support, then restart the main reactor — and setting reactor_online wins the campaign.",
+  "starting_room": {
+    "room_name": "Cryo Bay 2",
+    "description": "Rows of cryopods line the walls beneath a low ceiling of cable trays, their lids frosted from the inside. Your own pod stands open, still breathing pale vapor across the deck grating. By the forward hatch, a status panel glows on emergency battery.",
+    "exits": ["north", "down"],
+    "entities": [
+      {
+        "name": "cryo bay status panel",
+        "type": "item",
+        "description": "An amber screen scrolling a repeating fault log: MAIN REACTOR SCRAM — AUX POWER 11% AND FALLING — CREW REVIVAL: 1 OF 6 SUCCESSFUL. A deck schematic blinks helpfully at a route leading down.",
+        "can_pickup": false,
+        "is_blocking": false,
+        "solution_condition": null,
+        "blocks_direction": null,
+        "cleared_by_flag": null,
+        "traits": ["conspicuous", "readable", "powered"]
+      }
+    ]
+  },
+  "starting_inventory": [
+    {
+      "name": "ship-issue multitool",
+      "type": "item",
+      "description": "A folding multitool from the pod's survival pouch: driver heads, a short pry bar, wire snips, and a stubby flashlight good for a few hours.",
+      "can_pickup": true,
+      "is_blocking": false,
+      "solution_condition": null,
+      "blocks_direction": null,
+      "cleared_by_flag": null,
+      "traits": ["tool", "light source"]
+    }
+  ],
+  "win_flag": "reactor_online",
+  "win_message": "The reactor's hum climbs from a shudder to a steady, rising thrum, and deck lights cascade on down every corridor at once. Vents cough, then breathe. The Erebus is alive again — and so, against every light on that status panel, are you. You've won."
+}

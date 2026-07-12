@@ -1,0 +1,49 @@
+{
+  "zone_name": "The Drowned Archive",
+  "zone_description": "A vast library carved from pale stone, half-swallowed by the water it was built to outlast.",
+  "global_theme_rules": "Rooms are halls, stacks, scriptoria, and cisterns of a sunken library. North/south/east/west cross a floor; up/down connect mezzanines, stack towers, and the flooded under-vaults where the oldest works are sealed. Base descriptions are dry architecture only: standing floodwater, silt banks, and collapsed shelving are obstacle entities, and draining or shifting them should hinge on flags like sluice_gates_opened or great_pump_running, so one lever thrown in a pump room changes distant halls. The mood is hushed reverence — green light through water, ink ghosts on swollen pages, the drip of centuries. Mechanisms are hydraulic and ingenious; no modern technology. The goal is the Founders' Folio, sealed in the deepest vault: recovering it sets founders_folio_recovered.",
+  "starting_room": {
+    "room_name": "Reading Rotunda",
+    "description": "A domed rotunda ringed by reading desks, its oculus dimly glowing far overhead. Marble stairs descend toward the stacks on two sides, and the air tastes of wet stone and old paper.",
+    "exits": ["north", "east", "down"],
+    "entities": [
+      {
+        "name": "brass pump console",
+        "type": "item",
+        "description": "A waist-high console of valves and gauges set into the rotunda floor, clearly the master of some greater system below. Its gauge needles rest on empty, and a plaque of numbered valve positions has been annotated by hand: THREE BEFORE ONE, OR THE STACKS STAY DROWNED.",
+        "can_pickup": false,
+        "is_blocking": false,
+        "solution_condition": null,
+        "blocks_direction": null,
+        "cleared_by_flag": null,
+        "traits": ["conspicuous", "machine", "readable"]
+      }
+    ]
+  },
+  "starting_inventory": [
+    {
+      "name": "storm lantern",
+      "type": "item",
+      "description": "A glass-chimneyed lantern with a full reservoir of oil. Its light is warm and steady, and it has a bail for hanging while both hands work.",
+      "can_pickup": true,
+      "is_blocking": false,
+      "solution_condition": null,
+      "blocks_direction": null,
+      "cleared_by_flag": null,
+      "traits": ["light source"]
+    },
+    {
+      "name": "waxed document satchel",
+      "type": "item",
+      "description": "A librarian's satchel, waxed and watertight, sized for a single large volume. Whoever owned it never got to use it.",
+      "can_pickup": true,
+      "is_blocking": false,
+      "solution_condition": null,
+      "blocks_direction": null,
+      "cleared_by_flag": null,
+      "traits": ["container", "waterproof"]
+    }
+  ],
+  "win_flag": "founders_folio_recovered",
+  "win_message": "The vault seal turns with a sigh of equalizing air, and there it lies on its stone cradle, dry as the day it was shelved: the Founders' Folio. As you lift it into the satchel, the Archive seems to settle around you — as if the whole drowned house of knowledge had been holding its breath. You've won."
+}

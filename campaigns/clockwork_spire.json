@@ -1,0 +1,38 @@
+{
+  "zone_name": "The Mechanical Spire",
+  "zone_description": "An ancient vertical labyrinth of clockwork and steam, crowned by a Great Clock that stopped long before anyone living can remember.",
+  "global_theme_rules": "Rooms are chambers of one continuous ancient machine: gearworks, boiler galleries, pendulum shafts, counterweight wells. The spire is vertical — up/down (catwalks, ladders, counterweight lifts) matter more than compass directions, and ascending should feel like earned progress toward the silent Great Clock at the summit. Everything is brass, iron, steam, soot, and verdigris; no organic, magical, or modern elements. Failed machinery makes the obstacles: stalled gear trains, cold boilers, seized governors — prefer cleared_by_flag with flags like steam_pressure_restored or governor_balanced so repairing one system frees passages elsewhere in the spire. The campaign is won when the Great Clock is wound and strikes again: great_clock_wound.",
+  "starting_room": {
+    "room_name": "Boiler Undercroft",
+    "description": "A vaulted brick chamber at the spire's root, ringed by riveted flanks of boilers the size of houses. Coal chutes gape empty along one wall, and every pipe overhead runs upward, converging somewhere far above in the dark.",
+    "exits": ["north", "up"],
+    "entities": [
+      {
+        "name": "cold master boiler",
+        "type": "item",
+        "description": "The largest boiler of the ring, stone cold, its firebox door hanging open on one hinge. The brass maker's plate reads NO. 1 — FEED THE ONE, WAKE THE MANY, and its gauges all rest at zero.",
+        "can_pickup": false,
+        "is_blocking": false,
+        "solution_condition": null,
+        "blocks_direction": null,
+        "cleared_by_flag": null,
+        "traits": ["conspicuous", "machine"]
+      }
+    ]
+  },
+  "starting_inventory": [
+    {
+      "name": "boiler-room wrench",
+      "type": "item",
+      "description": "A heavy double-ended wrench, its handle worn smooth by hands long gone. It fits the square-headed fittings you can see on every pipe here.",
+      "can_pickup": true,
+      "is_blocking": false,
+      "solution_condition": null,
+      "blocks_direction": null,
+      "cleared_by_flag": null,
+      "traits": ["tool", "heavy"]
+    }
+  ],
+  "win_flag": "great_clock_wound",
+  "win_message": "Somewhere above you the escapement catches, holds — and releases. The first strike of the Great Clock rolls down through every gallery and gearwell like slow thunder, and the whole spire shudders into motion around you, alive for the first time in an age. You've won."
+}

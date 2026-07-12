@@ -1,0 +1,49 @@
+{
+  "zone_name": "The Scattered Teeth",
+  "zone_description": "A chain of storm-worn islands where Blackbeard's last crew vanished, and his gold with them.",
+  "global_theme_rules": "Two scales share one grid. At sea, each room is a league of open water: north/south/east/west are hours of sailing — describe wind, swell, seabirds, distant silhouettes — and land should appear only every few sea rooms, since most headings find more ocean. Ashore, each room is one area of an island (beach, jungle path, cliff top, ruined village, sea cave) and movement is on foot; up/down are climbs to lookouts or descents into caves and sunken wrecks (diving). Sea rooms should open wide — usually three compass exits besides the way back, so open water never feels walled in; island areas are tighter, one or two paths onward. Keep it 1700s nautical: rope, tar, powder, superstition — no modern machines. Reefs, storms, and cursed hazards are obstacle entities; use flags like chart_deciphered or storm_passed to open sailing routes, so learning something on one island changes the sea itself. The trail of clues should hop island to island toward Blackbeard's hoard; finding it and getting it open sets found_blackbeards_gold.",
+  "starting_room": {
+    "room_name": "Deck of the Sparrow's Wake",
+    "description": "Your sloop rides at anchor in a quiet cove, sails furled and rigging creaking in a light offshore breeze. Open water stretches away north and east beyond the cove mouth, and a crescent of white beach lies a short row to the west.",
+    "exits": ["north", "east", "west"],
+    "entities": [
+      {
+        "name": "weathered chart table",
+        "type": "item",
+        "description": "A half-finished chart of the Teeth pinned under whale-oil glass. Someone has circled an empty stretch of sea where no island is drawn, and beside it inked a small skull with far too many teeth.",
+        "can_pickup": false,
+        "is_blocking": false,
+        "solution_condition": null,
+        "blocks_direction": null,
+        "cleared_by_flag": null,
+        "traits": ["conspicuous", "readable"]
+      }
+    ]
+  },
+  "starting_inventory": [
+    {
+      "name": "brass spyglass",
+      "type": "item",
+      "description": "A dented but true spyglass. From any high point it should pick out sails, smoke, or shorelines leagues away.",
+      "can_pickup": true,
+      "is_blocking": false,
+      "solution_condition": null,
+      "blocks_direction": null,
+      "cleared_by_flag": null,
+      "traits": ["tool"]
+    },
+    {
+      "name": "torn map fragment",
+      "type": "item",
+      "description": "One corner of a much older map: an inked X, a skull-shaped rock, and a line of cramped writing — 'where the teeth bite the moon'.",
+      "can_pickup": true,
+      "is_blocking": false,
+      "solution_condition": null,
+      "blocks_direction": null,
+      "cleared_by_flag": null,
+      "traits": ["conspicuous", "readable"]
+    }
+  ],
+  "win_flag": "found_blackbeards_gold",
+  "win_message": "The lid gives with a groan that echoes off the cave walls, and your lantern light spills across doubloons, uncut emeralds, and a captain's skeletal hand still curled around the ship's articles. Blackbeard's hoard, found at last. You are rich beyond your wildest dreams — you've won."
+}

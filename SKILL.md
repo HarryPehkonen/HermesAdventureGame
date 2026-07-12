@@ -44,6 +44,12 @@ If `init` returns `\"new_game\": true`, narrate the opening scene from the
 `state` output. Otherwise say \"resuming\" and re-describe the current room
 (the player may have been away for days).
 
+Predefined campaigns live in `campaigns/*.json` (see the table in
+`campaigns/README.md`). When the player wants a new adventure, offer those
+or negotiate a custom `WorldInit` — then, only with their explicit
+go-ahead (it wipes the current world):
+`python game.py reset < campaigns/<name>.json`
+
 Doctor exit codes: **0** — all good. **3** — history gaps only: a past
 session skipped step 3 of the turn protocol; run
 `python doctor.py --repair-log` once — it inserts placeholder rows so old

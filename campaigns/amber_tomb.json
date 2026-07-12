@@ -1,0 +1,49 @@
+{
+  "zone_name": "Tomb of the Amber Pharaoh",
+  "zone_description": "A newly breached necropolis beneath the desert, whose builders spent more genius keeping people out than keeping their king in.",
+  "global_theme_rules": "Rooms alternate between the sunlit excavation camp on the surface and the cut-stone chambers below; down leads deeper, and every descent should feel like commitment. Dry heat, torch smoke, hieroglyphs, sand in everything; the period is 1920s archaeology — ropes, lanterns, and stubborn scholarship, with the uncanny earned slowly in the deep levels rather than assumed. Traps, rockfalls, sand-choked passages, and sealed ceremonial doors are obstacle entities; prefer solution_conditions grounded in observation (counterweights, light alignment, matching seals) and flags like seal_of_ra_broken for mechanisms whose reach crosses rooms. The Amber Scarab rests in the burial vault at the bottom of it all — the campaign is won, scarab_brought_to_daylight, when it is carried back up into open sun.",
+  "starting_room": {
+    "room_name": "Excavation Camp",
+    "description": "Canvas tents ring a firepit at the lip of a freshly cleared stone stair that descends into the earth. Crates of gear stand half-unpacked, and the desert runs flat and shimmering to the north as far as the eye holds.",
+    "exits": ["north", "down"],
+    "entities": [
+      {
+        "name": "expedition journal",
+        "type": "item",
+        "description": "The dig director's journal, abandoned open on a crate. The last entry is underlined twice: 'The door glyphs are a WARNING, not a dedication. Count the scarabs before trusting any floor. And whatever Hassan says — the vault wants to be found. That is what worries me.'",
+        "can_pickup": true,
+        "is_blocking": false,
+        "solution_condition": null,
+        "blocks_direction": null,
+        "cleared_by_flag": null,
+        "traits": ["conspicuous", "readable"]
+      }
+    ]
+  },
+  "starting_inventory": [
+    {
+      "name": "oil lantern",
+      "type": "item",
+      "description": "A field lantern with a fresh wick and a spare flask of oil taped to its base. The chambers below will be blacker than any night.",
+      "can_pickup": true,
+      "is_blocking": false,
+      "solution_condition": null,
+      "blocks_direction": null,
+      "cleared_by_flag": null,
+      "traits": ["light source"]
+    },
+    {
+      "name": "excavator's kit",
+      "type": "item",
+      "description": "A canvas roll of brushes, picks, chalk, and fifty feet of good rope. Everything a careful person needs to touch old things without regret.",
+      "can_pickup": true,
+      "is_blocking": false,
+      "solution_condition": null,
+      "blocks_direction": null,
+      "cleared_by_flag": null,
+      "traits": ["tool"]
+    }
+  ],
+  "win_flag": "scarab_brought_to_daylight",
+  "win_message": "You climb the last stair with your heart hammering and step into air that smells of woodsmoke and morning. In your hands the Amber Scarab drinks the sunlight and glows from within, like a coal that has waited three thousand years to be warm again. The vault kept its king — but not its treasure. You've won."
+}
