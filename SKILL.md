@@ -104,6 +104,8 @@ JSON shape (all fields required unless noted):
       \"can_pickup\": true,
       \"is_blocking\": false,
       \"solution_condition\": null,        // obstacles only: what clears it
+      \"blocks_direction\": null,          // obstacles only: exit it locks
+      \"cleared_by_flag\": null,           // obstacles only: flag that auto-clears it
       \"traits\": [\"metallic\", \"heavy\"]
     }
   ]
@@ -143,6 +145,34 @@ echo '<json>' | python game.py apply
 Every field is optional; send only what changed. The response lists `applied`
 and `rejected` changes — **narrate only what was applied.** If it reports
 `\"player_dead\": true`, narrate the death and offer a fresh start.
+
+## Environmental states & multi-room puzzles
+
+Temporary conditions are entities, not prose:
+
+1. **Base geometry**: a generated `description` must only describe permanent
+   physical architecture. Never bake temporary states (darkness, fire,
+   flooding) into it.
+2. **Environmental obstacles**: represent hostile conditions (darkness, gas,
+   flooding) as `obstacle` entities with `is_blocking: true`, a
+   `blocks_direction`, and a clear `solution_condition`.
+3. **Narrative synthesis**: weave the base geometry and the room's active,
+   uncleared obstacles into one cohesive description. Drop cleared obstacles
+   from later descriptions.
+4. **Puzzle flags**: when the player solves a puzzle whose effect reaches
+   beyond this room (restoring power, draining water), submit it via `apply`
+   as `flags_set` — and when generating rooms for that puzzle, give distant
+   obstacles the flag resolves a `cleared_by_flag` naming it.
+5. **Auto-resolution is the engine's job, not yours.** When a flag is set,
+   the engine clears matching `cleared_by_flag` obstacles itself: in the
+   current room at `apply` time, in other rooms when the player next moves
+   there (including through the locked passage itself). Command results
+   list the entity ids under `auto_cleared` / `auto_cleared_obstacles` —
+   narrate the change (the restored power banishing the darkness); never
+   re-submit those clears yourself.
+6. Flags appear in `state` output and in the generation `context`. Never
+   generate an environmental obstacle that a currently-set flag already
+   neutralizes — generate the room in its resolved state instead.
 
 ## Tone
 

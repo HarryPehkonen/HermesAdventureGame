@@ -160,6 +160,7 @@ def _build_generation_context(
     conn: sqlite3.Connection, current_node: sqlite3.Row, direction: str, tx: int, ty: int, tz: int
 ) -> dict:
     zone = database.get_zone_config(conn)
+    flags = json.loads(database.get_player_state(conn)["state_flags_json"])
     neighbors = []
     for d in models.DIRECTIONS:
         ndx, ndy, ndz = models.DIRECTION_OFFSETS[d]
@@ -184,6 +185,7 @@ def _build_generation_context(
         "direction_of_travel": direction,
         "exiting_room": {"name": current_node["name"], "description": current_node["description"]},
         "zone": dict(zone) if zone else None,
+        "flags": flags,
         "neighbors": neighbors,
     }
 
@@ -198,16 +200,33 @@ def move(conn: sqlite3.Connection, direction: str) -> dict:
     if player_row["hp"] <= 0:
         return {"ok": False, "error": "player_dead"}
     current_node_id = player_row["current_node_id"]
+    flags = json.loads(player_row["state_flags_json"])
     edge = database.get_edge(conn, current_node_id, direction)
 
     if edge is None:
         return {"ok": False, "error": "no_exit"}
     if edge["is_locked"]:
-        return {"ok": False, "error": "locked", "lock_condition": edge["lock_condition"]}
+        # A flag set elsewhere may already satisfy the blocking obstacle.
+        # Resolve it lazily here (§5.5) — otherwise the player could never
+        # reach the room whose entry would have cleared it.
+        blocker = (
+            database.get_entity(conn, edge["blocking_entity_id"])
+            if edge["blocking_entity_id"] is not None
+            else None
+        )
+        with conn:
+            unlocked = _flag_clear_obstacle(conn, blocker, flags)
+        if not unlocked:
+            return {"ok": False, "error": "locked", "lock_condition": edge["lock_condition"]}
+        edge = database.get_edge(conn, current_node_id, direction)
     if edge["to_node_id"] is not None:
         with conn:
             database.set_player_node(conn, edge["to_node_id"])
-        return {"ok": True, "moved": True, "room": _room_view(conn, edge["to_node_id"])}
+            auto_cleared = _auto_clear_room_obstacles(conn, edge["to_node_id"], flags)
+        result = {"ok": True, "moved": True, "room": _room_view(conn, edge["to_node_id"])}
+        if auto_cleared:
+            result["auto_cleared"] = auto_cleared
+        return result
 
     # Frontier: check whether the target coordinates already have a room
     # (loops can make a frontier point at a room generated from another side).
@@ -223,11 +242,15 @@ def move(conn: sqlite3.Connection, direction: str) -> dict:
             # Matching frontier on the other side: link both rows, carrying
             # over whatever lock state that frontier already had. A lock on
             # the far side blocks passage in either direction (§3.3), so the
-            # player only moves if the linked passage is unlocked.
+            # player only moves if the linked passage is unlocked — or if a
+            # flag already satisfies the blocking obstacle (§5.5), which
+            # clears it and unlocks both freshly-linked rows.
+            still_locked = bool(neighbor_edge["is_locked"])
+            auto_cleared: list[int] = []
             with conn:
                 database.set_edge_target(conn, current_node_id, direction, target_node["id"])
                 database.set_edge_target(conn, target_node["id"], opp, current_node_id)
-                if neighbor_edge["is_locked"]:
+                if still_locked:
                     database.lock_edge(
                         conn,
                         current_node_id,
@@ -235,15 +258,26 @@ def move(conn: sqlite3.Connection, direction: str) -> dict:
                         neighbor_edge["lock_condition"],
                         neighbor_edge["blocking_entity_id"],
                     )
-                else:
+                    blocker = (
+                        database.get_entity(conn, neighbor_edge["blocking_entity_id"])
+                        if neighbor_edge["blocking_entity_id"] is not None
+                        else None
+                    )
+                    if _flag_clear_obstacle(conn, blocker, flags):
+                        still_locked = False
+                if not still_locked:
                     database.set_player_node(conn, target_node["id"])
-            if neighbor_edge["is_locked"]:
+                    auto_cleared = _auto_clear_room_obstacles(conn, target_node["id"], flags)
+            if still_locked:
                 return {
                     "ok": False,
                     "error": "locked",
                     "lock_condition": neighbor_edge["lock_condition"],
                 }
-            return {"ok": True, "moved": True, "room": _room_view(conn, target_node["id"])}
+            result = {"ok": True, "moved": True, "room": _room_view(conn, target_node["id"])}
+            if auto_cleared:
+                result["auto_cleared"] = auto_cleared
+            return result
         else:
             # Neighbor exists but doesn't connect back to us — a wall on
             # their side. Our frontier was wrong; close it permanently.
@@ -266,9 +300,40 @@ def _entity_properties(entity: GeneratedEntity) -> dict:
     if entity.type == "obstacle":
         props["solution_condition"] = entity.solution_condition
         props["is_cleared"] = False
+        if entity.cleared_by_flag is not None:
+            props["cleared_by_flag"] = entity.cleared_by_flag
     if entity.blocks_direction is not None:
         props["blocks_direction"] = entity.blocks_direction
     return props
+
+
+def _flag_clear_obstacle(conn: sqlite3.Connection, ent: Optional[sqlite3.Row], flags: dict) -> bool:
+    """Clear an uncleared obstacle whose `cleared_by_flag` is satisfied by the
+    player's flags, unlocking any edges it blocks. Returns True if it cleared
+    just now. Caller provides the transaction."""
+    if ent is None or ent["type"] != "obstacle" or ent["holder"] != "room":
+        return False
+    props = json.loads(ent["properties_json"])
+    flag = props.get("cleared_by_flag")
+    if not flag or props.get("is_cleared") or not flags.get(flag):
+        return False
+    props["is_cleared"] = True
+    database.set_entity_properties(conn, ent["id"], props)
+    database.unlock_edges_by_blocking_entity(conn, ent["id"])
+    return True
+
+
+def _auto_clear_room_obstacles(conn: sqlite3.Connection, node_id: int, flags: dict) -> list[int]:
+    """Engine-side lazy auto-resolution (TECHNICAL_DETAILS.md §5.5): when the
+    player is in a room, every flag-linked obstacle there whose flag is set
+    clears deterministically — the agent only narrates the change."""
+    if not flags:
+        return []
+    cleared: list[int] = []
+    for ent in database.get_room_entities(conn, node_id):
+        if _flag_clear_obstacle(conn, ent, flags):
+            cleared.append(ent["id"])
+    return cleared
 
 
 def _lock_edge_pair(
@@ -384,8 +449,17 @@ def create_room(conn: sqlite3.Connection, direction: str, room: RoomGeneration) 
                 _lock_edge_pair(conn, node_id, entity.blocks_direction, entity.solution_condition, eid)
 
         database.set_player_node(conn, node_id)
+        # Safety net: SKILL.md tells the agent not to generate flag-linked
+        # obstacles a current flag already neutralizes, but if one slips
+        # through it clears immediately rather than lingering as a lie.
+        auto_cleared = _auto_clear_room_obstacles(
+            conn, node_id, json.loads(player_row["state_flags_json"])
+        )
 
-    return {"ok": True, "room": _room_view(conn, node_id)}
+    result = {"ok": True, "room": _room_view(conn, node_id)}
+    if auto_cleared:
+        result["auto_cleared"] = auto_cleared
+    return result
 
 
 # --- take / apply --------------------------------------------------------
@@ -529,6 +603,11 @@ def apply_changes(conn: sqlite3.Connection, changes: StateChanges) -> dict:
             flags.update(changes.flags_set)
             database.set_player_flags(conn, flags)
             applied["flags_set"] = changes.flags_set
+            # Flags resolve current-room obstacles immediately; obstacles in
+            # other rooms resolve lazily when the player next goes there.
+            auto_cleared = _auto_clear_room_obstacles(conn, current_node_id, flags)
+            if auto_cleared:
+                applied["auto_cleared_obstacles"] = auto_cleared
 
     return {"ok": True, "applied": applied, "rejected": rejected, "player_dead": new_hp <= 0}
 

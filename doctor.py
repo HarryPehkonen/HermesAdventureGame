@@ -188,6 +188,26 @@ def run_checks(conn: sqlite3.Connection) -> list[Finding]:
         if _load_json(ent["properties_json"]) is None:
             findings.append(_integrity(f"{label}: properties_json is not valid JSON"))
 
+    # flag-linked obstacles (TECHNICAL_DETAILS.md §5.5): lazy resolution means
+    # a satisfied obstacle in a far room is expected, but one in the player's
+    # current room should have been auto-cleared by the engine already.
+    flags = _load_json(player["state_flags_json"]) or {}
+    for ent in entities:
+        if (
+            ent["type"] != "obstacle"
+            or ent["holder"] != "room"
+            or ent["node_id"] != player["current_node_id"]
+        ):
+            continue
+        props = _load_json(ent["properties_json"]) or {}
+        flag = props.get("cleared_by_flag")
+        if flag and flags.get(flag) and not props.get("is_cleared"):
+            findings.append(_integrity(
+                f"entity {ent['id']} ({ent['name']!r}) in the player's current "
+                f"room has cleared_by_flag={flag!r} and the flag is set, but it "
+                "is not cleared — the engine should have auto-cleared it"
+            ))
+
     # player sanity
     if player["current_node_id"] not in node_by_id:
         findings.append(_integrity(

@@ -103,6 +103,7 @@ class GeneratedEntity(BaseModel):
     is_blocking: bool
     solution_condition: Optional[str] = None   # obstacles only
     blocks_direction: Optional[Direction] = None  # obstacles only; must be one of this room's exits
+    cleared_by_flag: Optional[str] = None      # obstacles only; auto-cleared when this flag is set (§5.5)
     traits: list[str] = []
 
 class RoomGeneration(BaseModel):
@@ -309,6 +310,50 @@ agent hallucinated one entity ID.
   overheal past `max_hp`. The response includes `"player_dead": true` when HP
   hits 0 — the agent narrates death and offers a restart via `game.py reset`.
 - `flags_set`: merged into `state_flags_json` (no validation — free namespace).
+
+## 5.5 Environmental states & flag-linked obstacles
+
+From `improvement_plan.pdf`, amended so auto-resolution is engine-side.
+
+**Composition over hardcoding.** Temporary conditions (darkness, flooding,
+gas) are never baked into a room's stored `description` — that would need
+2^N descriptions for N conditions. The base description stays neutral,
+permanent architecture; each hostile condition is an `obstacle` entity
+(usually `is_blocking: true` with a `blocks_direction` and a
+`solution_condition`), and the agent synthesizes prose from base + active
+obstacles each turn.
+
+**Multi-room puzzles via lazy evaluation.** A puzzle solved in Room A
+(breaker flipped → `flags_set: {"power_restored": true}`) may resolve
+obstacles in rooms far away. `apply` only accepts obstacle clears in the
+current room, so distant effects are carried by the flag and resolved
+lazily. The link is machine-readable, not prompt discipline: an obstacle's
+optional `cleared_by_flag` (stored in `properties_json`) names the flag
+that resolves it, and the **engine** clears it — sets `is_cleared`, unlocks
+any edges it blocks via `blocking_entity_id` — at these points:
+
+1. `apply` with `flags_set`: current-room obstacles, immediately
+   (reported as `applied.auto_cleared_obstacles`).
+2. `move` into a room: that room's satisfied obstacles
+   (reported as `auto_cleared`).
+3. `move` through a locked edge whose blocking obstacle's flag is
+   satisfied: the obstacle clears and the move succeeds — necessary
+   because the blocker may sit on the far side of the only way in.
+4. `create-room`: safety net; SKILL.md tells the agent not to generate
+   obstacles a set flag already neutralizes, but a slip-through clears
+   instantly (reported as `auto_cleared`).
+
+An uncleared satisfied obstacle in a *far* room is therefore normal
+(pending lazy resolution); one in the player's *current* room is corruption
+— doctor.py checks exactly that as an integrity finding.
+
+**Generation context** (`_build_generation_context`) includes the player's
+`flags` so newly generated rooms respect already-solved puzzles.
+
+The agent's role shrinks to the creative parts: inventing the puzzle,
+proposing the flag, choosing which generated obstacles carry
+`cleared_by_flag`, and narrating auto-cleared results. It never decides
+*whether* a flag-linked obstacle resolves.
 
 ## 6. SKILL.md (the agent-facing contract)
 

@@ -54,10 +54,11 @@ class GeneratedEntity(BaseModel):
     is_blocking: bool
     solution_condition: Optional[str] = None  # obstacles only
     blocks_direction: Optional[Direction] = None  # obstacles only
+    cleared_by_flag: Optional[str] = None  # obstacles only: flag that auto-clears it
     traits: list[str] = []
 
     @model_validator(mode="after")
-    def _blocks_direction_requires_blocking_obstacle(self) -> "GeneratedEntity":
+    def _obstacle_only_fields(self) -> "GeneratedEntity":
         if self.blocks_direction is not None:
             if self.type != "obstacle":
                 raise ValueError(
@@ -68,6 +69,11 @@ class GeneratedEntity(BaseModel):
                 raise ValueError(
                     "blocks_direction requires is_blocking=true"
                 )
+        if self.cleared_by_flag is not None and self.type != "obstacle":
+            raise ValueError(
+                "cleared_by_flag may only be set on an entity with "
+                f"type 'obstacle' (got type={self.type!r})"
+            )
         return self
 
 
