@@ -129,6 +129,8 @@ class WorldInit(BaseModel):
     global_theme_rules: str
     starting_room: RoomGeneration
     starting_inventory: list[GeneratedEntity] = []
+    win_flag: Optional[str] = None     # flag that completes the campaign (§5.6); None = endless sandbox
+    win_message: Optional[str] = None  # narrated on victory; must be paired with win_flag
 ```
 
 `WorldInit` validators: `starting_room.exits` must be non-empty (no softlocked
@@ -354,6 +356,34 @@ The agent's role shrinks to the creative parts: inventing the puzzle,
 proposing the flag, choosing which generated obstacles carry
 `cleared_by_flag`, and narrating auto-cleared results. It never decides
 *whether* a flag-linked obstacle resolves.
+
+## 5.6 Win condition
+
+A campaign may name a `win_flag` (paired with a `win_message`) in its
+`WorldInit`; both default to `None`, which is the pre-existing behavior — an
+endless sandbox. Existing saves and exports remain valid.
+
+The win is **derived state, exactly like `player_dead`**: the flag lives in
+`player_state.state_flags_json`, the flag *name* lives in the stored
+`world_init_json`, so `game_won` is computable from the DB alone and
+survives context loss. Three touchpoints:
+
+- `state` always reports `win_flag` (the goal — so an amnesiac session
+  knows what it is refereeing toward), `game_won`, and, once won,
+  `win_message`.
+- `apply` adds `game_won: true` + `win_message` to its normal result when
+  `flags_set` *newly* sets the win flag — appended to, never replacing,
+  `applied`/`rejected`/`player_dead` (a lethal winning action reports both).
+- doctor's summary shows the goal flag and a `** WON **` marker.
+
+Winning never gates commands: the player may keep exploring post-win
+(`state` keeps saying `game_won: true`; SKILL.md frames post-win play as an
+epilogue). Dying still blocks everything. `reset` replays the campaign with
+flags wiped, so `game_won` naturally returns to false.
+
+The agent's role: negotiate the goal at campaign creation, judge *when* it
+is accomplished, and set the flag via `apply` — the engine decides that the
+game is won.
 
 ## 6. SKILL.md (the agent-facing contract)
 

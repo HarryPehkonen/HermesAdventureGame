@@ -146,6 +146,25 @@ Every field is optional; send only what changed. The response lists `applied`
 and `rejected` changes — **narrate only what was applied.** If it reports
 `\"player_dead\": true`, narrate the death and offer a fresh start.
 
+## Winning the campaign
+
+A campaign may define a goal: `state` reports it as `win_flag` (null means an
+endless sandbox with no ending). You are the referee of *when* the goal is
+genuinely accomplished — when it is, set that flag via `apply` like any
+other. Never set it for a partial or hypothetical success.
+
+When `apply` responds with `game_won: true`, narrate the mechanical outcome,
+weave the provided `win_message` into it, and congratulate the player. The
+world stays open: they may keep exploring as a victory lap (`state` will keep
+saying `game_won: true` — treat post-win turns as an epilogue, not as if the
+goal were still pending), or you can offer `reset` to start fresh. If the
+same action also reports `player_dead: true`, the victory is posthumous —
+narrate both, then offer the fresh start; death still ends play.
+
+When negotiating a brand-new campaign (a `WorldInit` for `init`/`reset`),
+agree on a win condition with the player: a concrete goal, its `win_flag`
+name, and a `win_message` — or explicitly none for an endless sandbox.
+
 ## Environmental states & multi-room puzzles
 
 Temporary conditions are entities, not prose:

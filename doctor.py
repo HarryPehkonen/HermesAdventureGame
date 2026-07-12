@@ -301,7 +301,11 @@ def print_report(conn: sqlite3.Connection, db_path: str, findings: list[Finding]
     ) + sum(1 for e in edges if e["is_locked"] and e["to_node_id"] is None)
 
     if zone:
-        print(f"Campaign:  {zone['zone_name']}")
+        world_init = _load_json(database.get_world_init_json(conn) or "") or {}
+        win_flag = world_init.get("win_flag")
+        goal = f" · goal flag: {win_flag}" if win_flag else " · endless sandbox"
+        won = "  ** WON **" if win_flag and flags.get(win_flag) else ""
+        print(f"Campaign:  {zone['zone_name']}{goal}{won}")
     where = f"{here['name']} ({here['x']},{here['y']},{here['z']})" if here else "<missing room>"
     dead = "  ** DEAD **" if player["hp"] <= 0 else ""
     print(f"Player:    {where} — HP {player['hp']}/{player['max_hp']}{dead}")

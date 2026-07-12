@@ -121,6 +121,19 @@ class WorldInit(BaseModel):
     global_theme_rules: str
     starting_room: RoomGeneration
     starting_inventory: list[GeneratedEntity] = []
+    win_flag: Optional[str] = None  # flag that completes the campaign; None = endless sandbox
+    win_message: Optional[str] = None  # narrated on victory; paired with win_flag
+
+    @model_validator(mode="after")
+    def _win_condition_is_paired(self) -> "WorldInit":
+        if (self.win_flag is None) != (self.win_message is None):
+            raise ValueError(
+                "win_flag and win_message must be set together (or both "
+                "omitted for an endless sandbox campaign)"
+            )
+        if self.win_flag is not None and not self.win_flag.strip():
+            raise ValueError("win_flag must be a non-empty flag name")
+        return self
 
     @model_validator(mode="after")
     def _seed_is_playable(self) -> "WorldInit":

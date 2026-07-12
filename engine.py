@@ -108,6 +108,16 @@ def export_world(conn: sqlite3.Connection) -> dict:
 
 # --- state assembly ----------------------------------------------------
 
+def _win_info(conn: sqlite3.Connection) -> tuple[Optional[str], Optional[str]]:
+    """The campaign's (win_flag, win_message) from the stored WorldInit, or
+    (None, None) for an endless-sandbox campaign (§5.6)."""
+    stored = database.get_world_init_json(conn)
+    if stored is None:
+        return None, None
+    world = json.loads(stored)
+    return world.get("win_flag"), world.get("win_message")
+
+
 def _room_view(conn: sqlite3.Connection, node_id: int) -> dict:
     node = database.get_node(conn, node_id)
     edges = database.get_edges_for_node(conn, node_id)
@@ -144,6 +154,12 @@ def get_full_state(conn: sqlite3.Connection) -> dict:
         for t in database.get_recent_turns(conn, config.RECENT_TURNS_LIMIT)
     ]
     hp = player_row["hp"]
+    flags = json.loads(player_row["state_flags_json"])
+    # Like player_dead, the win is derived from persisted state, so a fresh
+    # session with no memory of earlier turns still knows the goal and
+    # whether it has been met (§5.6).
+    win_flag, win_message = _win_info(conn)
+    game_won = bool(win_flag and flags.get(win_flag))
     return {
         "zone": dict(zone) if zone else None,
         "room": room,
@@ -151,7 +167,10 @@ def get_full_state(conn: sqlite3.Connection) -> dict:
         "hp": hp,
         "max_hp": player_row["max_hp"],
         "player_dead": hp <= 0,
-        "flags": json.loads(player_row["state_flags_json"]),
+        "flags": flags,
+        "win_flag": win_flag,
+        "game_won": game_won,
+        "win_message": win_message if game_won else None,
         "recent_turns": recent_turns,
     }
 
@@ -598,8 +617,13 @@ def apply_changes(conn: sqlite3.Connection, changes: StateChanges) -> dict:
                 applied["healing_to_player"] = heal
             applied["hp"] = new_hp
 
+        newly_won = False
         if changes.flags_set:
             flags = json.loads(player_row["state_flags_json"])
+            win_flag, win_message = _win_info(conn)
+            newly_won = bool(
+                win_flag and changes.flags_set.get(win_flag) and not flags.get(win_flag)
+            )
             flags.update(changes.flags_set)
             database.set_player_flags(conn, flags)
             applied["flags_set"] = changes.flags_set
@@ -609,7 +633,14 @@ def apply_changes(conn: sqlite3.Connection, changes: StateChanges) -> dict:
             if auto_cleared:
                 applied["auto_cleared_obstacles"] = auto_cleared
 
-    return {"ok": True, "applied": applied, "rejected": rejected, "player_dead": new_hp <= 0}
+    result = {"ok": True, "applied": applied, "rejected": rejected, "player_dead": new_hp <= 0}
+    if newly_won:
+        # Reported once, at the moment of victory; `state` keeps answering
+        # game_won afterward. Winning never gates later commands (§5.6) —
+        # the player is free to keep exploring. Dying still does.
+        result["game_won"] = True
+        result["win_message"] = win_message
+    return result
 
 
 def log_turn(conn: sqlite3.Connection, player_input: str, narrative: str) -> dict:
