@@ -70,6 +70,16 @@ def test_full_turn_cycle(tmp_path, monkeypatch):
     state2 = run_cli(["state"], env)
     assert state2["room"]["name"] == "Steam Landing"
 
+    # Entities in state must be flat — same shape the agent pipes to
+    # create-room/apply (can_pickup, is_blocking, ...) — never nested under
+    # a "properties" key. A live session once had to guess-and-retry when
+    # these two shapes disagreed.
+    coil = state2["room"]["entities"][0]
+    assert "properties" not in coil
+    assert coil["can_pickup"] is True
+    assert coil["is_blocking"] is False
+    assert coil["traits"] == ["metallic"]
+
     take_result = run_cli(["take", str(entity_id)], env)
     assert take_result["ok"] is True
 

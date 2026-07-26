@@ -290,12 +290,15 @@ def set_entity_properties(conn: sqlite3.Connection, entity_id: int, properties: 
 
 
 def entity_to_dict(row: sqlite3.Row) -> dict:
+    # Flat, not nested under "properties": this is the same shape the agent
+    # submits to `create-room`/`apply` (can_pickup, is_blocking, traits, ...),
+    # so reading state and authoring a new room don't disagree on the schema.
     return {
         "id": row["id"],
         "name": row["name"],
         "type": row["type"],
         "description": row["description"],
-        "properties": json.loads(row["properties_json"]),
+        **json.loads(row["properties_json"]),
     }
 
 
