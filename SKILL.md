@@ -48,9 +48,11 @@ If `init` returns `"new_game": true`, narrate the opening scene from the
 (the player may have been away for days).
 
 Doctor exit codes: **0** — all good. **3** — history gaps only: a past
-session skipped step 3 of the turn protocol; run
+turn's narrative never made it into `turn_log` (an old session's `state`
+call had no payload or a rejected one — see Turn protocol below); run
 `python scripts/doctor.py --repair-log` once — it inserts placeholder rows so old
-gaps stop alarming — then log every turn from here on. **1** — the world
+gaps stop alarming — then keep following the turn protocol from here on.
+**1** — the world
 state itself is inconsistent: do NOT attempt any repair; keep hosting from
 `state` as best you can and briefly mention, out of character, that the
 save needs the developer's attention. Never show raw doctor output to the
@@ -80,8 +82,14 @@ When the player wants a new adventure (or asks what there is to play):
 
 For each player message:
 
-1. `python scripts/game.py state` — current room, exits, entities, inventory, hp,
-   flags, win condition, and the last few turns for continuity.
+1. Log the previous turn and read state in one call: pipe the previous
+   turn's exact `{"player_input": "...", "narrative": "..."}` (the player's
+   last message and the narration you sent back) on stdin to
+   `python scripts/game.py state`. On the first turn of a session there's
+   nothing previous to log — call it with no stdin. The response's
+   `logged_previous_turn` confirms it landed; a `log_error` field means the
+   payload was rejected but state came back anyway — don't let it block the
+   turn, just log the missed one later with `game.py log` if it matters.
 2. Interpret the player's intent and pick a path:
    - **Movement** ("go north", "climb up"): `python scripts/game.py move north`
    - **Taking an obvious item**: `python scripts/game.py take <entity_id>`
@@ -89,13 +97,14 @@ For each player message:
      no other call needed.
    - **Anything creative or ambiguous** (using items, fighting, talking to
      NPCs, prying open hatches): referee it yourself — see below.
-3. Log the turn:
-   `echo '{"player_input": "...", "narrative": "..."}' | python scripts/game.py log`
-4. Send the narration (under 3000 chars).
+3. Send the narration (under 3000 chars) — remember it verbatim, since it's
+   exactly what gets piped into step 1 of the *next* turn.
 
-If you realize the previous turn was never logged and the player is still in
-the same room, log it now — with what actually happened — before logging the
-current turn. A late log with real content beats a placeholder.
+Because step 1 runs every turn — including pure look/inventory turns that
+never touch `move`/`take`/`apply` — this logs the whole session, not just
+the mechanical turns. The only gap it can't close is the very last turn of
+a session (nothing calls `state` again to carry its narrative); log that one
+by hand with `python scripts/game.py log` if you know a session is ending.
 
 ## Generating a new room
 

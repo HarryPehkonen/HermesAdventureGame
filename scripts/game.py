@@ -26,17 +26,22 @@ def _read_stdin_json() -> dict:
     return json.loads(sys.stdin.read())
 
 
-def _read_optional_world_init() -> "WorldInit | None":
-    """Optional WorldInit payload on stdin. A TTY (interactive terminal, no
-    pipe) or an empty/whitespace pipe both mean "no payload" — only actual
-    content is parsed. This keeps plain `init`/`reset` working in agent and
+def _read_optional_stdin_json() -> "dict | None":
+    """Optional JSON payload on stdin. A TTY (interactive terminal, no pipe)
+    or an empty/whitespace pipe both mean "no payload" — only actual content
+    is parsed. This keeps plain `init`/`reset`/`state` working in agent and
     CI contexts where stdin is an empty pipe or /dev/null."""
     if sys.stdin.isatty():
         return None
     raw = sys.stdin.read().strip()
     if not raw:
         return None
-    return WorldInit.model_validate(json.loads(raw))
+    return json.loads(raw)
+
+
+def _read_optional_world_init() -> "WorldInit | None":
+    payload = _read_optional_stdin_json()
+    return WorldInit.model_validate(payload) if payload is not None else None
 
 
 def cmd_init(conn, args):
@@ -52,7 +57,33 @@ def cmd_export_world(conn, args):
 
 
 def cmd_state(conn, args):
-    return {"ok": True, **engine.get_full_state(conn)}
+    """`state` doubles as the logging point for the *previous* turn: pipe
+    its {"player_input", "narrative"} on stdin and it's written to turn_log
+    before this turn's state is read. This runs every turn (including pure
+    look/inventory turns, which never call `log` otherwise), so a bad or
+    missing payload must never block the state read it's piggybacking on."""
+    logged_previous_turn = False
+    log_error = None
+    payload = None
+    try:
+        payload = _read_optional_stdin_json()
+    except json.JSONDecodeError as e:
+        log_error = f"invalid_json: {e}"
+    if payload is not None:
+        try:
+            entry = TurnLogEntry.model_validate(payload)
+            engine.log_turn(conn, entry.player_input, entry.narrative)
+            logged_previous_turn = True
+        except pydantic.ValidationError as e:
+            log_error = f"validation_error: {e}"
+    result = {
+        "ok": True,
+        "logged_previous_turn": logged_previous_turn,
+        **engine.get_full_state(conn),
+    }
+    if log_error is not None:
+        result["log_error"] = log_error
+    return result
 
 
 def cmd_move(conn, args):
@@ -106,7 +137,11 @@ def build_parser() -> argparse.ArgumentParser:
         "or pipe a WorldInit JSON on stdin to start a different one",
     )
     sub.add_parser("export-world", help="print the stored WorldInit payload (shareable)")
-    sub.add_parser("state", help="print the full current situation")
+    sub.add_parser(
+        "state",
+        help="print the full current situation; optionally pipe the previous turn's "
+        '{"player_input", "narrative"} JSON on stdin to log it first',
+    )
 
     move_p = sub.add_parser("move", help="move in a direction")
     move_p.add_argument("direction", choices=list(models.DIRECTIONS))
@@ -121,7 +156,11 @@ def build_parser() -> argparse.ArgumentParser:
     take_p = sub.add_parser("take", help="pick up an obvious item by entity id")
     take_p.add_argument("entity_id", type=int)
 
-    sub.add_parser("log", help='append {"player_input", "narrative"} JSON on stdin to turn_log')
+    sub.add_parser(
+        "log",
+        help='append {"player_input", "narrative"} JSON on stdin to turn_log — manual '
+        "fallback; normal play logs via `state` (see above)",
+    )
 
     return parser
 

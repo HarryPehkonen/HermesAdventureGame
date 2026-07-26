@@ -55,12 +55,12 @@ breakage with apostrophes in generated prose).
 | `game.py init` | optional `WorldInit` JSON on stdin | seeds DB if empty — from the payload (custom campaign) or the built-in default; `{"ok": true, "new_game": bool}`. A payload against an already-seeded DB fails loudly with `already_seeded` (never silently ignored). |
 | `game.py reset` | optional `WorldInit` JSON on stdin | wipes all rows and re-seeds. No payload = **replays the stored campaign** (same theme, room, loadout); with payload = starts a different campaign |
 | `game.py export-world` | — | prints the stored `WorldInit` payload — shareable; another player pipes it to `init` |
-| `game.py state` | — | full situation: current room, exits (with lock/frontier status), room entities, inventory, hp, flags — everything needed to narrate a turn |
+| `game.py state` | optional `{"player_input":...,"narrative":...}` on stdin — the *previous* turn | logs the payload to `turn_log` first (if present and valid), then returns the full situation: current room, exits (with lock/frontier status), room entities, inventory, hp, flags, `logged_previous_turn: bool`, and `log_error` if the payload was present but invalid — never blocks the state read |
 | `game.py move <dir>` | direction arg | one of: `{"ok":true,"moved":true,"room":{...}}` · `{"ok":true,"needs_generation":true,"context":{...}}` · `{"ok":false,"error":"no_exit"|"locked",...}` |
 | `game.py create-room <dir>` | `RoomGeneration` JSON on stdin | validates, writes node + edges + entities transactionally, moves player; returns the new room state |
 | `game.py apply` | `StateChanges` JSON on stdin | applies validated changes; returns `{"applied":{...},"rejected":[{"change":...,"reason":...}]}` |
 | `game.py take <entity_id>` | id arg | moves item to inventory if `can_pickup` and unblocked, else error |
-| `game.py log` | `{"player_input":...,"narrative":...}` on stdin | appends to `turn_log`; returns `{"ok":true}` |
+| `game.py log` | `{"player_input":...,"narrative":...}` on stdin | appends to `turn_log`; returns `{"ok":true}`. Manual fallback only — normal play logs via `state`'s stdin payload above, since that runs every turn (including look/inventory turns this command would otherwise miss) |
 
 `move` with `needs_generation` returns a `context` object containing
 everything the agent needs to invent the room without further calls: target

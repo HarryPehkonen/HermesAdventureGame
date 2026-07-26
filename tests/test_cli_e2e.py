@@ -95,6 +95,49 @@ def test_full_turn_cycle(tmp_path, monkeypatch):
     assert state4["inventory"] == []
 
 
+def test_state_logs_previous_turn_via_stdin(tmp_path):
+    import os
+
+    db_path = str(tmp_path / "e2e_look_log.db")
+    env = {**os.environ, "HERMES_DB_PATH": db_path}
+    run_cli(["init"], env)
+
+    # A pure look/inventory turn never calls `move`/`apply`/`log` — its
+    # narrative only ever reaches turn_log via the *next* turn's `state`
+    # call, piped as {"player_input", "narrative"} on stdin.
+    payload = json.dumps({"player_input": "look around", "narrative": "Steam hisses overhead."})
+    state = run_cli(["state"], env, stdin_data=payload)
+    assert state["ok"] is True
+    assert state["logged_previous_turn"] is True
+    assert "log_error" not in state
+    assert state["recent_turns"] == [{"player_input": "look around", "narrative": "Steam hisses overhead."}]
+
+    # No payload (the normal case at the very start of a session) logs nothing.
+    state2 = run_cli(["state"], env)
+    assert state2["logged_previous_turn"] is False
+    assert state2["recent_turns"] == [{"player_input": "look around", "narrative": "Steam hisses overhead."}]
+
+
+def test_state_with_bad_log_payload_still_returns_state(tmp_path):
+    import os
+
+    db_path = str(tmp_path / "e2e_bad_log.db")
+    env = {**os.environ, "HERMES_DB_PATH": db_path}
+    run_cli(["init"], env)
+
+    # Malformed JSON must not block the state read it's piggybacking on.
+    state = run_cli(["state"], env, stdin_data="{not valid json")
+    assert state["ok"] is True
+    assert state["logged_previous_turn"] is False
+    assert state["log_error"].startswith("invalid_json")
+
+    # Same for JSON that doesn't match {"player_input", "narrative"}.
+    state2 = run_cli(["state"], env, stdin_data=json.dumps({"wrong_field": "oops"}))
+    assert state2["ok"] is True
+    assert state2["logged_previous_turn"] is False
+    assert state2["log_error"].startswith("validation_error")
+
+
 def test_invalid_json_on_stdin_returns_ok_false(tmp_path):
     import os
 

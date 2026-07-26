@@ -23,19 +23,21 @@ session actually needs.
 | `init` | optional WorldInit | seed a new campaign if the save is empty (idempotent) |
 | `reset` | optional WorldInit | wipe and restart: replay stored campaign, or start the piped one |
 | `export-world` | — | print the stored WorldInit (shareable, restartable) |
-| `state` | — | the full current situation — run this first, every turn |
+| `state` | optional `{"player_input", "narrative"}` | logs that (the *previous* turn) if present, then the full current situation — run this first, every turn |
 | `move <dir>` | — | move north/south/east/west/up/down |
 | `create-room <dir>` | RoomGeneration | materialize the room you invented for a frontier |
 | `take <entity_id>` | — | pick up an obvious item |
 | `apply` | StateChanges | submit refereed outcomes (damage, items, obstacles, flags) |
-| `log` | `{"player_input", "narrative"}` | append the turn to the permanent log |
+| `log` | `{"player_input", "narrative"}` | manual fallback — append a turn directly; normal play logs via `state`'s stdin instead |
 
 ## Response fields worth knowing
 
 - **`state`**: `zone`, `room` (with `exits`: direction/locked/generated),
   `inventory`, `hp`/`max_hp`, `player_dead`, `flags`, `win_flag`
   (null = endless sandbox), `game_won`, `win_message` (only once won),
-  `recent_turns`.
+  `recent_turns`, `logged_previous_turn` (whether a piped payload was
+  written to `turn_log`), `log_error` (present only if the payload was
+  rejected — state is still returned either way).
 - **`move`**: `moved` + `room`; or `needs_generation` + `context` (theme,
   flags, exiting room, neighbors — respect all of it); or errors
   `no_exit` / `locked` (with `lock_condition`) / `player_dead`. May include
