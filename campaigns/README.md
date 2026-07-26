@@ -4,11 +4,11 @@ Each file is a complete `WorldInit` payload (see TECHNICAL_DETAILS.md §2).
 Start one:
 
 ```bash
-python game.py init  < campaigns/derelict_starship.json   # on an empty save
-python game.py reset < campaigns/derelict_starship.json   # replace the current campaign
+python scripts/game.py init  < campaigns/derelict_starship.json   # on an empty save
+python scripts/game.py reset < campaigns/derelict_starship.json   # replace the current campaign
 ```
 
-**`reset` wipes the current world.** Run `python game.py export-world` first
+**`reset` wipes the current world.** Run `python scripts/game.py export-world` first
 if you want to keep what you're playing — the exported JSON is itself a
 campaign file you can drop in this directory.
 
@@ -40,7 +40,7 @@ That string is the campaign's real design surface — it should cover:
 Validate a new file with:
 
 ```bash
-python -c "import json, models; models.WorldInit.model_validate(json.load(open('campaigns/FILE.json'))); print('ok')"
+PYTHONPATH=scripts python -c "import json, models; models.WorldInit.model_validate(json.load(open('campaigns/FILE.json'))); print('ok')"
 ```
 
 (`tests/test_campaigns.py` does the same for every file here, plus seeds

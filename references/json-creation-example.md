@@ -1,12 +1,12 @@
 # JSON Creation Example for Adventure Game Host
 
-When creating rooms in the adventure game, you need to pipe valid JSON to the game.py create-room command. Here's a proven approach that avoids bash quoting issues:
+When creating rooms in the adventure game, you need to pipe valid JSON to the scripts/game.py create-room command. Here's a proven approach that avoids bash quoting issues:
 
 ## Method: Temporary File Approach (Recommended)
 
 1. Create the JSON object in Python or using a JSON tool
 2. Write it to a temporary file
-3. Pipe the file contents to game.py
+3. Pipe the file contents to scripts/game.py
 
 ```python
 import json
@@ -36,8 +36,8 @@ with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
     json.dump(room_data, f)
     temp_file = f.name
 
-# Pipe to game.py
-bash_command = f"cat {temp_file} | python3 game.py create-room down"
+# Pipe to scripts/game.py
+bash_command = f"cat {temp_file} | python3 scripts/game.py create-room down"
 result = subprocess.run(bash_command, shell=True, capture_output=True, text=True)
 
 # Clean up
@@ -50,7 +50,7 @@ For very simple JSON objects, you can use bash with careful escaping:
 
 ```bash
 # Simple object - use single quotes and escape internal double quotes
-echo '{"room_name":"Simple Room","description":"A basic room.","exits":["north"],"entities":[]}' | python3 game.py create-room north
+echo '{"room_name":"Simple Room","description":"A basic room.","exits":["north"],"entities":[]}' | python3 scripts/game.py create-room north
 ```
 
 ## Common Pitfalls

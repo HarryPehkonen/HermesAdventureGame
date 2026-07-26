@@ -8,7 +8,7 @@ import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).parent.parent
-GAME_PY = str(REPO_ROOT / "game.py")
+GAME_PY = str(REPO_ROOT / "scripts" / "game.py")
 
 
 def run_cli(args, env, stdin_data=""):
@@ -178,5 +178,5 @@ def test_state_before_init_reports_not_initialized(tmp_path):
     assert result == {
         "ok": False,
         "error": "not_initialized",
-        "details": "player_state is not seeded — run `game.py init` first",
+        "details": "player_state is not seeded — run `python scripts/game.py init` first",
     }

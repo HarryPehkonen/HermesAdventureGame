@@ -1,11 +1,11 @@
-"""Repo-root conftest: puts the flat top-level modules (config, database,
+"""Repo-root conftest: puts the flat modules under scripts/ (config, database,
 engine, models, game) on sys.path for `tests/` and provides shared fixtures.
 """
 
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent))
+sys.path.insert(0, str(Path(__file__).parent / "scripts"))
 
 import pytest
 

@@ -111,7 +111,7 @@ class StateChanges(BaseModel):
 class WorldInit(BaseModel):
     """Seed payload for a new campaign: theme, starting room, and starting
     inventory, negotiated with the player in SKILL.md's Lobby Mode. Piped to
-    `game.py init` (new game) or `game.py reset` (switch campaigns); persisted
+    `scripts/game.py init` (new game) or `scripts/game.py reset` (switch campaigns); persisted
     in game_config so `reset` without a payload replays the same campaign."""
 
     model_config = ConfigDict(extra="forbid")

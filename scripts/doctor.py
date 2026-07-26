@@ -73,7 +73,7 @@ def run_checks(conn: sqlite3.Connection) -> list[Finding]:
     """Every Finding returned is one failed check, with the reason inline."""
     if not database.is_seeded(conn):
         return [
-            _integrity("not seeded: player_state is empty — run `python game.py init` first")
+            _integrity("not seeded: player_state is empty — run `python scripts/game.py init` first")
         ]
 
     findings: list[Finding] = []
@@ -407,7 +407,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--db",
         default=config.DB_PATH,
-        help=f"database file to inspect (default: {config.DB_PATH}, same as game.py)",
+        help=f"database file to inspect (default: {config.DB_PATH}, same as scripts/game.py)",
     )
     parser.add_argument(
         "-v", "--verbose", action="store_true",

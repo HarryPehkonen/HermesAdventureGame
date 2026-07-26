@@ -25,9 +25,9 @@ python -m venv .venv
 ## Installing as an agent skill
 
 The agent-facing contract is `SKILL.md`. Symlink the **whole repo** into
-your agent's skills directory — the skill needs `game.py`, `campaigns/`,
+your agent's skills directory — the skill needs `scripts/`, `campaigns/`,
 and `references/` sitting next to it, and it creates its save database
-there too:
+under `data/` (auto-created on first run):
 
 ```bash
 ln -s /path/to/HermesAdventureGame ~/.hermes/skills/adventure-game-host
@@ -80,44 +80,46 @@ wipes the current world — `export-world` first if you want it back), or
 start one directly:
 
 ```bash
-python game.py reset < campaigns/pirate_islands.json
+python scripts/game.py reset < campaigns/pirate_islands.json
 ```
 
 ## Save management & tools
 
-The save is a single SQLite file next to the code (`hermes_game.db`, set by
-`DB_PATH` in `config.py`; the `HERMES_DB_PATH` env var overrides it).
+The save is a single SQLite file under `data/` (`data/hermes_game.db`, set
+by `DB_PATH` in `scripts/config.py`; the `HERMES_DB_PATH` env var overrides
+it). It's runtime state, not source — kept out of `scripts/` and gitignored.
 Copying the file copies the game in progress.
 
-`doctor.py` is the human-side inspector — handy during development:
+`scripts/doctor.py` is the human-side inspector — handy during development:
 
 ```bash
-python doctor.py             # summary: campaign, player, world stats, checks
-python doctor.py -v          # + full room graph, inventory, turn history
-python doctor.py --check-only    # consistency checks; exit 0/1/2/3
-python doctor.py --repair-log    # plug old turn-log gaps with markers
-python doctor.py --db other.db   # inspect a different save
+python scripts/doctor.py             # summary: campaign, player, world stats, checks
+python scripts/doctor.py -v          # + full room graph, inventory, turn history
+python scripts/doctor.py --check-only    # consistency checks; exit 0/1/2/3
+python scripts/doctor.py --repair-log    # plug old turn-log gaps with markers
+python scripts/doctor.py --db other.db   # inspect a different save
 ```
 
 Useful engine commands (each prints one JSON object):
 
 ```bash
-python game.py state             # the full current situation
-python game.py export-world      # shareable campaign seed — others can
-                                 # `init` it to play your campaign fresh
-python game.py reset             # restart the current campaign from turn one
+python scripts/game.py state             # the full current situation
+python scripts/game.py export-world      # shareable campaign seed — others can
+                                         # `init` it to play your campaign fresh
+python scripts/game.py reset             # restart the current campaign from turn one
 ```
 
 ## Project layout
 
-| File | Role |
+| Path | Role |
 |---|---|
-| `game.py` | CLI entry point — the JSON contract the agent drives |
-| `engine.py` | rules: movement, generation, refereeing limits, win/auto-clear logic |
-| `database.py` | SQLite schema and row-level helpers |
-| `models.py` | Pydantic schemas for everything the agent proposes |
-| `config.py` | DB path and the built-in default campaign |
-| `doctor.py` | save inspector / consistency checker (human-facing) |
+| `scripts/game.py` | CLI entry point — the JSON contract the agent drives |
+| `scripts/engine.py` | rules: movement, generation, refereeing limits, win/auto-clear logic |
+| `scripts/database.py` | SQLite schema and row-level helpers |
+| `scripts/models.py` | Pydantic schemas for everything the agent proposes |
+| `scripts/config.py` | DB path and the built-in default campaign |
+| `scripts/doctor.py` | save inspector / consistency checker (human-facing) |
+| `data/` | the save file — runtime state, gitignored, auto-created |
 | `SKILL.md` | the Game Host contract the agent runs on |
 | `campaigns/` | predefined worlds (`README.md` there explains writing your own) |
 | `references/` | deeper agent-facing guidance |

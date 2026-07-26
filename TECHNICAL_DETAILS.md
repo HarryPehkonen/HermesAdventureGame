@@ -16,7 +16,7 @@ narrates — guided by `SKILL.md`. The Python side is a deterministic CLI state
 machine that owns the authoritative game state in SQLite.
 
 ```
-User ⇄ (Telegram etc.) ⇄ Hermes Agent ⇄ game.py CLI ⇄ hermes_game.db
+User ⇄ (Telegram etc.) ⇄ Hermes Agent ⇄ scripts/game.py CLI ⇄ data/hermes_game.db
         ≤3000 chars/turn     │
                              └─ SKILL.md (protocol + narration rules)
 ```
@@ -242,7 +242,7 @@ CREATE TABLE IF NOT EXISTS turn_log (
 `game_config` gains `world_init_json TEXT NOT NULL` — the exact `WorldInit`
 payload the campaign was seeded from. `reset` (no payload) replays it;
 `export-world` prints it for sharing. The full SQLite DB file remains the
-save game: copying `hermes_game.db` transfers a campaign *in progress*, while
+save game: copying `data/hermes_game.db` transfers a campaign *in progress*, while
 the exported `WorldInit` shares a campaign *from the beginning*.
 
 Everything else in the PLAN.md schema stands as written.
@@ -428,7 +428,7 @@ A separate human-facing script, deliberately **not** a `game.py` subcommand:
 `game.py`'s stdout is a strict one-JSON-object contract, and mixing in a
 plain-text report risks the agent confusing the two.
 
-- `python doctor.py` — short summary (which DB file, campaign, player, room,
+- `python scripts/doctor.py` — short summary (which DB file, campaign, player, room,
   HP, inventory, world stats, turn count) plus any failed checks.
 - `-v` / `--verbose` — adds the full room graph, inventory with descriptions,
   destroyed entities, and the complete turn history.

@@ -7,6 +7,7 @@ Schema matches TECHNICAL_DETAILS.md §3 (amending PLAN.md's original schema).
 """
 
 import json
+import os
 import sqlite3
 from typing import Optional
 
@@ -16,6 +17,11 @@ DIRECTIONS_SQL = "'north','south','east','west','up','down'"
 
 
 def get_connection(db_path: str = config.DB_PATH) -> sqlite3.Connection:
+    # sqlite3 refuses to create a missing parent directory (e.g. data/ on a
+    # fresh clone) — create it up front so the default DB_PATH just works.
+    parent = os.path.dirname(db_path)
+    if parent:
+        os.makedirs(parent, exist_ok=True)
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON;")
@@ -306,7 +312,7 @@ def insert_player_state(conn: sqlite3.Connection, current_node_id: int, hp: int,
 def get_player_state(conn: sqlite3.Connection) -> sqlite3.Row:
     row = conn.execute("SELECT * FROM player_state WHERE id = 1;").fetchone()
     if row is None:
-        raise RuntimeError("player_state is not seeded — run `game.py init` first")
+        raise RuntimeError("player_state is not seeded — run `python scripts/game.py init` first")
     return row
 
 

@@ -10,8 +10,9 @@ track game state yourself — the `game.py` CLI owns the map, inventory, HP,
 and flags in SQLite. Read state from the CLI every turn; never answer from
 memory of earlier turns.
 
-The save is a SQLite database in the same directory as this file; the
-filename comes from `DB_PATH` in `config.py` (currently `hermes_game.db`).
+The save is a SQLite database in a `data/` directory next to this file; the
+path comes from `DB_PATH` in `scripts/config.py` (currently
+`data/hermes_game.db`), created automatically on first run.
 
 All `game.py` output is one JSON object on stdout. `{"ok": false,
 "error": ...}` means the action failed at the game level — react to it,
@@ -37,9 +38,9 @@ you, never for the player.)
 ## Starting or resuming
 
 ```bash
-python game.py init     # idempotent — seeds a new world only if the DB is empty
-python game.py state
-python doctor.py --check-only   # save sanity check — plain text, NOT JSON
+python scripts/game.py init     # idempotent — seeds a new world only if the DB is empty
+python scripts/game.py state
+python scripts/doctor.py --check-only   # save sanity check — plain text, NOT JSON
 ```
 
 If `init` returns `"new_game": true`, narrate the opening scene from the
@@ -48,7 +49,7 @@ If `init` returns `"new_game": true`, narrate the opening scene from the
 
 Doctor exit codes: **0** — all good. **3** — history gaps only: a past
 session skipped step 3 of the turn protocol; run
-`python doctor.py --repair-log` once — it inserts placeholder rows so old
+`python scripts/doctor.py --repair-log` once — it inserts placeholder rows so old
 gaps stop alarming — then log every turn from here on. **1** — the world
 state itself is inconsistent: do NOT attempt any repair; keep hosting from
 `state` as best you can and briefly mention, out of character, that the
@@ -67,11 +68,11 @@ When the player wants a new adventure (or asks what there is to play):
    small starting inventory; and a win condition (`win_flag` paired with
    `win_message`) or explicitly none for an endless sandbox.
 2. Starting a campaign **wipes the current world**. Get the player's
-   explicit go-ahead first, and offer `python game.py export-world` if they
+   explicit go-ahead first, and offer `python scripts/game.py export-world` if they
    might ever want the current campaign back — the exported JSON restarts
    it from the beginning.
 3. Then pipe the payload:
-   `python game.py reset < campaigns/<name>.json` (predefined) or pipe the
+   `python scripts/game.py reset < campaigns/<name>.json` (predefined) or pipe the
    negotiated WorldInit JSON. Plain `init` accepts a payload only on an
    empty save.
 
@@ -79,17 +80,17 @@ When the player wants a new adventure (or asks what there is to play):
 
 For each player message:
 
-1. `python game.py state` — current room, exits, entities, inventory, hp,
+1. `python scripts/game.py state` — current room, exits, entities, inventory, hp,
    flags, win condition, and the last few turns for continuity.
 2. Interpret the player's intent and pick a path:
-   - **Movement** ("go north", "climb up"): `python game.py move north`
-   - **Taking an obvious item**: `python game.py take <entity_id>`
+   - **Movement** ("go north", "climb up"): `python scripts/game.py move north`
+   - **Taking an obvious item**: `python scripts/game.py take <entity_id>`
    - **Looking / inventory / status**: narrate straight from `state` output —
      no other call needed.
    - **Anything creative or ambiguous** (using items, fighting, talking to
      NPCs, prying open hatches): referee it yourself — see below.
 3. Log the turn:
-   `echo '{"player_input": "...", "narrative": "..."}' | python game.py log`
+   `echo '{"player_input": "...", "narrative": "..."}' | python scripts/game.py log`
 4. Send the narration (under 3000 chars).
 
 If you realize the previous turn was never logged and the player is still in
@@ -107,7 +108,7 @@ neighbors, the flags, or the theme.**
 Pipe your invention to the CLI:
 
 ```bash
-python game.py create-room north < /tmp/room.json
+python scripts/game.py create-room north < /tmp/room.json
 ```
 
 **Getting JSON into the CLI reliably:** write the JSON to a temporary file
@@ -188,7 +189,7 @@ player's approach reasonably satisfies the condition, it works.
 Submit the mechanical outcome, then narrate:
 
 ```bash
-python game.py apply < /tmp/changes.json
+python scripts/game.py apply < /tmp/changes.json
 ```
 
 ```json
