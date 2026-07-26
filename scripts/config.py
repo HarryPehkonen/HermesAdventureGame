@@ -6,12 +6,19 @@ Agent at play time via `scripts/game.py create-room`.
 """
 
 import os
+from pathlib import Path
+
+# The installed skill's root (the directory holding SKILL.md, scripts/,
+# campaigns/). Resolved from this file, never from the cwd: the agent
+# invokes the CLI from whatever directory its session happens to be in,
+# and the save must not move with it.
+SKILL_ROOT = Path(__file__).resolve().parent.parent
 
 # HERMES_DB_PATH lets the test suite point subprocess-driven CLI runs at a
-# throwaway file instead of the real save; unset in normal play.
-# Relative to the skill directory (the CLI's cwd), not to this file — kept
-# out of scripts/ so the save is runtime state, not source.
-DB_PATH = os.environ.get("HERMES_DB_PATH", "data/hermes_game.db")
+# throwaway file instead of the real save, and lets a container mount the
+# save on a volume; unset in normal play. Kept out of scripts/ so the save
+# is runtime state, not source.
+DB_PATH = os.environ.get("HERMES_DB_PATH") or str(SKILL_ROOT / "data" / "hermes_game.db")
 
 # How many recent turn_log rows `scripts/game.py state` includes for narrative
 # continuity (TECHNICAL_DETAILS.md §3.5).
