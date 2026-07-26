@@ -19,23 +19,40 @@ picks up exactly where you left off.
 python -m venv .venv
 .venv/bin/pip install -r requirements.txt
 .venv/bin/pip install -r requirements-dev.txt   # optional: pytest
-.venv/bin/python -m pytest -q                   # optional: verify (110 tests)
+.venv/bin/python -m pytest -q                   # optional: verify (114 tests)
 ```
 
 ## Installing as an agent skill
 
-The agent-facing contract is `SKILL.md`. Symlink the **whole repo** into
-your agent's skills directory — the skill needs `scripts/`, `campaigns/`,
-and `references/` sitting next to it, and it creates its save database
-under `data/` (auto-created on first run):
-
 ```bash
-ln -s /path/to/HermesAdventureGame ~/.hermes/skills/adventure-game-host
+./install.sh --profile adventure     # into ~/.hermes/profiles/adventure/skills/
+./install.sh --global                # into ~/.hermes/skills/ (all profiles)
+./install.sh --skills-dir ~/.claude/skills   # any SKILL.md-style host
 ```
 
-Any agent host that discovers `SKILL.md`-style skills works the same way
-(for Claude Code, the directory is `~/.claude/skills/`). Adjust the target
-to wherever your agent looks for skills.
+With no flags it auto-detects: one Hermes profile is used automatically,
+several make it stop and ask rather than install where your agent isn't
+looking. Re-running is safe. `./install.sh --help` lists the rest.
+
+It does two things:
+
+1. **Symlinks the whole repo** into the skills directory as
+   `adventure-game-host` — the skill needs `scripts/`, `campaigns/`, and
+   `references/` beside `SKILL.md`, and keeps its save in `data/`.
+2. **Writes `adventure-game` and `adventure-doctor` launchers** into
+   `~/.local/bin` (`--bin-dir` to change, `--no-bin` to skip).
+
+The launchers are the part that matters. `SKILL.md` drives the engine
+through them, and they carry absolute paths, so the agent can run the game
+from whatever directory its session happens to be in. Without them the
+agent has to search the filesystem for `game.py` on every cold session —
+under a chat gateway, the working directory is never this repo. For the
+same reason the save file is located relative to the installed skill, not
+the current directory.
+
+> Installing by hand instead? Symlink the repo yourself, then either put
+> equivalent launchers on PATH or accept that the agent must `cd` here
+> first — `python scripts/game.py …` assumes this repo is the cwd.
 
 ## Playing
 
@@ -80,34 +97,39 @@ wipes the current world — `export-world` first if you want it back), or
 start one directly:
 
 ```bash
-python scripts/game.py reset < campaigns/pirate_islands.json
+adventure-game reset --campaign pirate_islands
 ```
 
 ## Save management & tools
 
-The save is a single SQLite file under `data/` (`data/hermes_game.db`, set
-by `DB_PATH` in `scripts/config.py`; the `HERMES_DB_PATH` env var overrides
-it). It's runtime state, not source — kept out of `scripts/` and gitignored.
-Copying the file copies the game in progress.
+The save is a single SQLite file at `data/hermes_game.db` inside the
+installed skill, resolved from the code's own location so it doesn't move
+with your working directory. `HERMES_DB_PATH` overrides it — that's the hook
+for pointing a container at a mounted volume, and what the tests use. It's
+runtime state, not source: kept out of `scripts/` and gitignored. Copying
+the file copies the game in progress.
 
-`scripts/doctor.py` is the human-side inspector — handy during development:
+`adventure-doctor` is the human-side inspector — handy during development:
 
 ```bash
-python scripts/doctor.py             # summary: campaign, player, world stats, checks
-python scripts/doctor.py -v          # + full room graph, inventory, turn history
-python scripts/doctor.py --check-only    # consistency checks; exit 0/1/2/3
-python scripts/doctor.py --repair-log    # plug old turn-log gaps with markers
-python scripts/doctor.py --db other.db   # inspect a different save
+adventure-doctor                 # summary: campaign, player, world stats, checks
+adventure-doctor -v              # + full room graph, inventory, turn history
+adventure-doctor --check-only    # consistency checks; exit 0/1/2/3
+adventure-doctor --repair-log    # plug old turn-log gaps with markers
+adventure-doctor --db other.db   # inspect a different save
 ```
 
 Useful engine commands (each prints one JSON object):
 
 ```bash
-python scripts/game.py state             # the full current situation
-python scripts/game.py export-world      # shareable campaign seed — others can
-                                         # `init` it to play your campaign fresh
-python scripts/game.py reset             # restart the current campaign from turn one
+adventure-game state             # the full current situation
+adventure-game export-world      # shareable campaign seed — others can
+                                 # `init` it to play your campaign fresh
+adventure-game reset             # restart the current campaign from turn one
 ```
+
+Both are thin wrappers around `scripts/game.py` and `scripts/doctor.py`;
+run those directly (from this repo) if you skipped the launchers.
 
 ## Project layout
 
@@ -120,6 +142,7 @@ python scripts/game.py reset             # restart the current campaign from tur
 | `scripts/config.py` | DB path and the built-in default campaign |
 | `scripts/doctor.py` | save inspector / consistency checker (human-facing) |
 | `data/` | the save file — runtime state, gitignored, auto-created |
+| `install.sh` | symlinks the skill and installs the PATH launchers |
 | `SKILL.md` | the Game Host contract the agent runs on |
 | `campaigns/` | predefined worlds (`README.md` there explains writing your own) |
 | `references/` | deeper agent-facing guidance |

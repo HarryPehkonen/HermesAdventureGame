@@ -4,11 +4,16 @@ Each file is a complete `WorldInit` payload (see TECHNICAL_DETAILS.md §2).
 Start one:
 
 ```bash
-python scripts/game.py init  < campaigns/derelict_starship.json   # on an empty save
-python scripts/game.py reset < campaigns/derelict_starship.json   # replace the current campaign
+adventure-game init  --campaign derelict_starship   # on an empty save
+adventure-game reset --campaign derelict_starship   # replace the current campaign
 ```
 
-**`reset` wipes the current world.** Run `python scripts/game.py export-world` first
+`--campaign` takes the filename without `.json` and resolves it here in the
+skill directory, so it works from any cwd. Piping a file still works too
+(`adventure-game reset < some_world.json`) — that's how you start a campaign
+that doesn't live in this directory.
+
+**`reset` wipes the current world.** Run `adventure-game export-world` first
 if you want to keep what you're playing — the exported JSON is itself a
 campaign file you can drop in this directory.
 

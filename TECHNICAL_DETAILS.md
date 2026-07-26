@@ -50,10 +50,17 @@ tracebacks or prose to stdout.
 Proposals are passed as JSON on stdin (not argv — avoids shell-quoting
 breakage with apostrophes in generated prose).
 
+**Nothing resolves against the cwd.** The agent invokes the CLI from
+whatever directory its session is in, so the save (`config.DB_PATH`) and the
+predefined campaigns (`--campaign`) are both resolved from
+`config.SKILL_ROOT`, derived from `__file__`. `install.sh` installs
+`adventure-game` / `adventure-doctor` launchers carrying absolute paths, and
+SKILL.md drives the engine exclusively through those.
+
 | Command | Input | Output (on success) |
 |---|---|---|
-| `game.py init` | optional `WorldInit` JSON on stdin | seeds DB if empty — from the payload (custom campaign) or the built-in default; `{"ok": true, "new_game": bool}`. A payload against an already-seeded DB fails loudly with `already_seeded` (never silently ignored). |
-| `game.py reset` | optional `WorldInit` JSON on stdin | wipes all rows and re-seeds. No payload = **replays the stored campaign** (same theme, room, loadout); with payload = starts a different campaign |
+| `game.py init` | `--campaign NAME`, or optional `WorldInit` JSON on stdin | seeds DB if empty — from the named predefined campaign, the piped payload, or the built-in default; `{"ok": true, "new_game": bool}`. A payload against an already-seeded DB fails loudly with `already_seeded` (never silently ignored). |
+| `game.py reset` | `--campaign NAME`, or optional `WorldInit` JSON on stdin | wipes all rows and re-seeds. Neither = **replays the stored campaign** (same theme, room, loadout); either one = starts a different campaign |
 | `game.py export-world` | — | prints the stored `WorldInit` payload — shareable; another player pipes it to `init` |
 | `game.py state` | optional `{"player_input":...,"narrative":...}` on stdin — the *previous* turn | logs the payload to `turn_log` first (if present and valid), then returns the full situation: current room, exits (with lock/frontier status), room entities, inventory, hp, flags, `logged_previous_turn: bool`, and `log_error` if the payload was present but invalid — never blocks the state read |
 | `game.py move <dir>` | direction arg | one of: `{"ok":true,"moved":true,"room":{...}}` · `{"ok":true,"needs_generation":true,"context":{...}}` · `{"ok":false,"error":"no_exit"|"locked",...}` |

@@ -12,6 +12,7 @@ import sys
 
 import pydantic
 
+import config
 import database
 import engine
 import models
@@ -39,17 +40,32 @@ def _read_optional_stdin_json() -> "dict | None":
     return json.loads(raw)
 
 
-def _read_optional_world_init() -> "WorldInit | None":
+def _load_campaign(name: str) -> WorldInit:
+    """A predefined campaign by name, resolved against the installed skill
+    directory — so `--campaign pirate_islands` works from any cwd, unlike a
+    relative `< campaigns/pirate_islands.json` redirect."""
+    campaigns_dir = config.SKILL_ROOT / "campaigns"
+    path = campaigns_dir / f"{name}.json"
+    if not path.is_file():
+        available = ", ".join(sorted(p.stem for p in campaigns_dir.glob("*.json")))
+        raise FileNotFoundError(f"no campaign named {name!r} — available: {available}")
+    return WorldInit.model_validate(json.loads(path.read_text()))
+
+
+def _world_init_from(args) -> "WorldInit | None":
+    """--campaign <name> wins; otherwise an optional WorldInit on stdin."""
+    if getattr(args, "campaign", None):
+        return _load_campaign(args.campaign)
     payload = _read_optional_stdin_json()
     return WorldInit.model_validate(payload) if payload is not None else None
 
 
 def cmd_init(conn, args):
-    return engine.init_game(conn, _read_optional_world_init())
+    return engine.init_game(conn, _world_init_from(args))
 
 
 def cmd_reset(conn, args):
-    return engine.reset_game(conn, _read_optional_world_init())
+    return engine.reset_game(conn, _world_init_from(args))
 
 
 def cmd_export_world(conn, args):
@@ -126,16 +142,23 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="game.py", description="Hermes Adventure Game engine")
     sub = parser.add_subparsers(dest="command", required=True)
 
-    sub.add_parser(
+    init_p = sub.add_parser(
         "init",
-        help="seed a new game if the DB is empty (idempotent); "
-        "optionally pipe a WorldInit JSON on stdin for a custom campaign",
+        help="seed a new game if the DB is empty (idempotent); pass --campaign "
+        "or pipe a WorldInit JSON on stdin for a custom campaign",
     )
-    sub.add_parser(
+    reset_p = sub.add_parser(
         "reset",
-        help="wipe all data and restart: replays the stored campaign, "
-        "or pipe a WorldInit JSON on stdin to start a different one",
+        help="wipe all data and restart: replays the stored campaign, or pass "
+        "--campaign / pipe a WorldInit JSON on stdin to start a different one",
     )
+    for p in (init_p, reset_p):
+        p.add_argument(
+            "--campaign",
+            metavar="NAME",
+            help="a predefined campaign from campaigns/ by name (e.g. pirate_islands) — "
+            "resolved against the skill directory, so it works from any cwd",
+        )
     sub.add_parser("export-world", help="print the stored WorldInit payload (shareable)")
     sub.add_parser(
         "state",
@@ -176,6 +199,8 @@ def main(argv: list[str] | None = None) -> int:
             result = {"ok": False, "error": "validation_error", "details": str(e)}
         except json.JSONDecodeError as e:
             result = {"ok": False, "error": "invalid_json", "details": str(e)}
+        except FileNotFoundError as e:
+            result = {"ok": False, "error": "unknown_campaign", "details": str(e)}
         except RuntimeError as e:
             result = {"ok": False, "error": "not_initialized", "details": str(e)}
         _print(result)

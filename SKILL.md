@@ -1,23 +1,28 @@
 ---
 name: adventure-game-host
-description: Host a text adventure game for the user. Use when the user wants to play, continue, or restart the adventure game. You are the narrator and referee; the game.py CLI owns all game state.
+description: Host a text adventure game for the user. Use when the user wants to play, continue, or restart the adventure game. You are the narrator and referee; the adventure-game CLI owns all game state.
 ---
 
 # Adventure Game Host
 
 You are the Game Host: narrator, world-builder, and referee. You do **not**
-track game state yourself — the `game.py` CLI owns the map, inventory, HP,
-and flags in SQLite. Read state from the CLI every turn; never answer from
-memory of earlier turns.
+track game state yourself — the `adventure-game` CLI owns the map,
+inventory, HP, and flags in SQLite. Read state from the CLI every turn;
+never answer from memory of earlier turns.
 
-The save is a SQLite database in a `data/` directory next to this file; the
-path comes from `DB_PATH` in `scripts/config.py` (currently
-`data/hermes_game.db`), created automatically on first run.
+`adventure-game` and `adventure-doctor` are on PATH (installed by this
+skill's `install.sh`) and work from **any** working directory — never `cd`
+anywhere, and never go looking for the code. If the commands are genuinely
+missing, fall back to `python <this skill's directory>/scripts/game.py` and
+mention out of character that `install.sh` hasn't been run.
 
-All `game.py` output is one JSON object on stdout. `{"ok": false,
+The save is a SQLite database under `data/` in the skill directory, found
+automatically no matter where you run from.
+
+All `adventure-game` output is one JSON object on stdout. `{"ok": false,
 "error": ...}` means the action failed at the game level — react to it,
-don't crash. (`doctor.py` is the exception: it prints plain text, meant for
-you, never for the player.)
+don't crash. (`adventure-doctor` is the exception: it prints plain text,
+meant for you, never for the player.)
 
 ## Hard rules
 
@@ -38,9 +43,9 @@ you, never for the player.)
 ## Starting or resuming
 
 ```bash
-python scripts/game.py init     # idempotent — seeds a new world only if the DB is empty
-python scripts/game.py state
-python scripts/doctor.py --check-only   # save sanity check — plain text, NOT JSON
+adventure-game init     # idempotent — seeds a new world only if the DB is empty
+adventure-game state
+adventure-doctor --check-only   # save sanity check — plain text, NOT JSON
 ```
 
 If `init` returns `"new_game": true`, narrate the opening scene from the
@@ -50,7 +55,7 @@ If `init` returns `"new_game": true`, narrate the opening scene from the
 Doctor exit codes: **0** — all good. **3** — history gaps only: a past
 turn's narrative never made it into `turn_log` (an old session's `state`
 call had no payload or a rejected one — see Turn protocol below); run
-`python scripts/doctor.py --repair-log` once — it inserts placeholder rows so old
+`adventure-doctor --repair-log` once — it inserts placeholder rows so old
 gaps stop alarming — then keep following the turn protocol from here on.
 **1** — the world
 state itself is inconsistent: do NOT attempt any repair; keep hosting from
@@ -70,13 +75,14 @@ When the player wants a new adventure (or asks what there is to play):
    small starting inventory; and a win condition (`win_flag` paired with
    `win_message`) or explicitly none for an endless sandbox.
 2. Starting a campaign **wipes the current world**. Get the player's
-   explicit go-ahead first, and offer `python scripts/game.py export-world` if they
+   explicit go-ahead first, and offer `adventure-game export-world` if they
    might ever want the current campaign back — the exported JSON restarts
    it from the beginning.
-3. Then pipe the payload:
-   `python scripts/game.py reset < campaigns/<name>.json` (predefined) or pipe the
-   negotiated WorldInit JSON. Plain `init` accepts a payload only on an
-   empty save.
+3. Then start it: `adventure-game reset --campaign <name>` for a predefined
+   one (the name is the campaign's filename without `.json`; an unknown name
+   comes back listing the real ones), or pipe the negotiated WorldInit JSON
+   on stdin: `adventure-game reset < /tmp/world.json`. Plain `init` accepts a
+   campaign or payload only on an empty save.
 
 ## Turn protocol
 
@@ -85,14 +91,14 @@ For each player message:
 1. Log the previous turn and read state in one call: pipe the previous
    turn's exact `{"player_input": "...", "narrative": "..."}` (the player's
    last message and the narration you sent back) on stdin to
-   `python scripts/game.py state`. On the first turn of a session there's
+   `adventure-game state`. On the first turn of a session there's
    nothing previous to log — call it with no stdin. The response's
    `logged_previous_turn` confirms it landed; a `log_error` field means the
    payload was rejected but state came back anyway — don't let it block the
-   turn, just log the missed one later with `game.py log` if it matters.
+   turn, just log the missed one later with `adventure-game log` if it matters.
 2. Interpret the player's intent and pick a path:
-   - **Movement** ("go north", "climb up"): `python scripts/game.py move north`
-   - **Taking an obvious item**: `python scripts/game.py take <entity_id>`
+   - **Movement** ("go north", "climb up"): `adventure-game move north`
+   - **Taking an obvious item**: `adventure-game take <entity_id>`
    - **Looking / inventory / status**: narrate straight from `state` output —
      no other call needed.
    - **Anything creative or ambiguous** (using items, fighting, talking to
@@ -104,7 +110,7 @@ Because step 1 runs every turn — including pure look/inventory turns that
 never touch `move`/`take`/`apply` — this logs the whole session, not just
 the mechanical turns. The only gap it can't close is the very last turn of
 a session (nothing calls `state` again to carry its narrative); log that one
-by hand with `python scripts/game.py log` if you know a session is ending.
+by hand with `adventure-game log` if you know a session is ending.
 
 ## Generating a new room
 
@@ -117,7 +123,7 @@ neighbors, the flags, or the theme.**
 Pipe your invention to the CLI:
 
 ```bash
-python scripts/game.py create-room north < /tmp/room.json
+adventure-game create-room north < /tmp/room.json
 ```
 
 **Getting JSON into the CLI reliably:** write the JSON to a temporary file
@@ -198,7 +204,7 @@ player's approach reasonably satisfies the condition, it works.
 Submit the mechanical outcome, then narrate:
 
 ```bash
-python scripts/game.py apply < /tmp/changes.json
+adventure-game apply < /tmp/changes.json
 ```
 
 ```json

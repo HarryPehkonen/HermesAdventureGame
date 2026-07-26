@@ -148,6 +148,38 @@ def test_state_with_bad_log_payload_still_returns_state(tmp_path):
     assert state2["log_error"].startswith("validation_error")
 
 
+def test_campaign_flag_resolves_from_any_cwd(tmp_path):
+    """--campaign resolves against the skill directory, not the cwd — the
+    agent's session runs from wherever it happens to be."""
+    import os
+
+    db_path = str(tmp_path / "e2e_campaign.db")
+    env = {**os.environ, "HERMES_DB_PATH": db_path}
+
+    # cwd deliberately somewhere with no campaigns/ directory.
+    proc = subprocess.run(
+        [sys.executable, GAME_PY, "init", "--campaign", "pirate_islands"],
+        input="", capture_output=True, text=True, env=env, cwd=str(tmp_path),
+    )
+    assert proc.returncode == 0, proc.stderr
+    assert json.loads(proc.stdout.strip()) == {"ok": True, "new_game": True}
+
+    state = run_cli(["state"], env)
+    assert state["zone"]["zone_name"] == "The Scattered Teeth"
+
+
+def test_unknown_campaign_lists_the_real_ones(tmp_path):
+    import os
+
+    db_path = str(tmp_path / "e2e_bad_campaign.db")
+    env = {**os.environ, "HERMES_DB_PATH": db_path}
+
+    result = run_cli(["init", "--campaign", "no_such_campaign"], env)
+    assert result["ok"] is False
+    assert result["error"] == "unknown_campaign"
+    assert "pirate_islands" in result["details"]
+
+
 def test_invalid_json_on_stdin_returns_ok_false(tmp_path):
     import os
 
