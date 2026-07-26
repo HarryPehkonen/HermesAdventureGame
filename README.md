@@ -25,8 +25,8 @@ python -m venv .venv
 ## Installing as an agent skill
 
 ```bash
+./install.sh --global                # into ~/.hermes/skills/
 ./install.sh --profile adventure     # into ~/.hermes/profiles/adventure/skills/
-./install.sh --global                # into ~/.hermes/skills/ (all profiles)
 ./install.sh --skills-dir ~/.claude/skills   # any SKILL.md-style host
 ```
 
@@ -54,10 +54,54 @@ the current directory.
 > equivalent launchers on PATH or accept that the agent must `cd` here
 > first — `python scripts/game.py …` assumes this repo is the cwd.
 
+### Which profile? (Hermes specifics)
+
+**Skills do not cross profile boundaries.** Every Hermes profile carries its
+own skills tree, so installing once does not make the game available
+everywhere — install into each profile you actually want to play in.
+
+The layout is easy to misread:
+
+| Profile | Its skills live in | Reached by |
+|---|---|---|
+| `default` | `~/.hermes/skills/` — the base directory itself | `--global` |
+| any other (`local`, `adventure`, …) | `~/.hermes/profiles/<name>/skills/` | `--profile <name>` |
+
+So `--global` is **not** "all profiles" — it installs for the profile named
+`default` only. Two consequences worth knowing before you go hunting for a
+skill that "should" be there:
+
+- **Plain `hermes` is not necessarily `default`.** It launches your *sticky*
+  profile, marked ◆ in `hermes profile list`. Change it with
+  `hermes profile use <name>`.
+- **Verify rather than assume**, with:
+
+  ```bash
+  hermes skills list -p <profile> | grep adventure-game-host
+  ```
+
+Skills are loaded when a session starts, so start a new session after
+installing — an already-running one won't see it.
+
+> **Containers:** because a profile created later gets a fresh, empty skills
+> tree, running `install.sh` at image-build time only covers the profiles
+> that exist *then*. If your setup creates a profile at runtime, run
+> `install.sh` from the entrypoint instead. Point `HERMES_DB_PATH` at a
+> mounted volume too, or the save dies with the container.
+
 ## Playing
 
-Tell your agent something like **"let's play the adventure game"**. The
-skill takes it from there:
+In the Hermes CLI — no gateway, Telegram, or messaging platform required:
+
+```bash
+hermes                # your sticky profile (◆ in `hermes profile list`)
+hermes -p default     # a specific profile
+```
+
+That opens an interactive session; the same skill works through any
+messaging platform you have configured. Either way, tell your agent
+something like **"let's play the adventure game"**. The skill takes it from
+there:
 
 - **New save** — the agent offers a campaign: one of the six predefined
   ones below, a custom world it negotiates with you (theme, starting
