@@ -175,6 +175,36 @@ adventure-game reset             # restart the current campaign from turn one
 Both are thin wrappers around `scripts/game.py` and `scripts/doctor.py`;
 run those directly (from this repo) if you skipped the launchers.
 
+### Playing a second game without disturbing the first
+
+There is only one save, so anything that plays — including the agent — walks
+straight into your game in progress. `--db` points a whole game somewhere
+else and leaves the real save byte-for-byte untouched:
+
+```bash
+adventure-game --db /tmp/scratch.db init --campaign amber_tomb
+adventure-game --db /tmp/scratch.db state
+adventure-doctor --db /tmp/scratch.db -v
+```
+
+It's accepted before or after the subcommand, and beats `HERMES_DB_PATH`.
+
+This is what makes **letting the agent play by itself** safe — ask for it,
+and tell it to pass `--db`:
+
+> "Play a full game of `amber_tomb` by yourself. Pass
+> `--db /tmp/selfplay.db` on every `adventure-game` command so my save
+> isn't touched."
+
+When it wins or dies, `cp /tmp/selfplay.db somewhere/win.db` keeps the run
+as a souvenir, and `adventure-doctor --db somewhere/win.db -v` replays every
+turn. Solo play is a good shake-out of room generation, obstacle flags, and
+validation — but calibrate expectations: `SKILL.md` casts the agent as the
+*Host*, so playing alone it invents the rooms, knows every
+`solution_condition`, and grades its own win condition. It cannot surprise
+itself. A genuinely blind run needs two sessions — one hosting, one player
+that sees only the narration and never touches the database.
+
 ## Project layout
 
 | Path | Role |

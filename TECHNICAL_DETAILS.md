@@ -50,6 +50,11 @@ tracebacks or prose to stdout.
 Proposals are passed as JSON on stdin (not argv — avoids shell-quoting
 breakage with apostrophes in generated prose).
 
+`--db PATH` (accepted on either side of the subcommand, and winning over
+`HERMES_DB_PATH`) runs a command against a different save entirely — the
+isolation that makes a throwaway or agent-self-play game safe while a real
+game is in progress. `doctor.py` has the same flag.
+
 **Nothing resolves against the cwd.** The agent invokes the CLI from
 whatever directory its session is in, so the save (`config.DB_PATH`) and the
 predefined campaigns (`--campaign`) are both resolved from

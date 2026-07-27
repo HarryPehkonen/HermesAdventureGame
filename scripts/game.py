@@ -138,8 +138,21 @@ COMMANDS = {
 }
 
 
+def _add_db_option(parser: argparse.ArgumentParser) -> None:
+    # SUPPRESS so that supplying --db on one side of the subcommand isn't
+    # clobbered by the other side's unset default.
+    parser.add_argument(
+        "--db",
+        metavar="PATH",
+        default=argparse.SUPPRESS,
+        help="save file to use instead of the default (wins over HERMES_DB_PATH); "
+        "accepted before or after the subcommand",
+    )
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="game.py", description="Hermes Adventure Game engine")
+    _add_db_option(parser)
     sub = parser.add_subparsers(dest="command", required=True)
 
     init_p = sub.add_parser(
@@ -185,12 +198,15 @@ def build_parser() -> argparse.ArgumentParser:
         "fallback; normal play logs via `state` (see above)",
     )
 
+    for subparser in sub.choices.values():
+        _add_db_option(subparser)
+
     return parser
 
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
-    conn = database.get_connection()
+    conn = database.get_connection(getattr(args, "db", None) or config.DB_PATH)
     try:
         database.init_schema(conn)  # always safe: CREATE TABLE IF NOT EXISTS
         try:

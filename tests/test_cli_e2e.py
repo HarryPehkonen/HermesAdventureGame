@@ -180,6 +180,36 @@ def test_unknown_campaign_lists_the_real_ones(tmp_path):
     assert "pirate_islands" in result["details"]
 
 
+def test_db_flag_isolates_from_the_default_save(tmp_path):
+    """--db must leave the save the engine would otherwise use completely
+    untouched — that's what makes a throwaway/self-play game safe."""
+    import os
+
+    real_save = tmp_path / "real.db"
+    throwaway = tmp_path / "throwaway.db"
+    # HERMES_DB_PATH stands in for "the save normal play would use".
+    env = {**os.environ, "HERMES_DB_PATH": str(real_save)}
+
+    run_cli(["init", "--campaign", "clockwork_spire"], env)
+    assert real_save.exists()
+    before = real_save.read_bytes()
+
+    # A whole separate game, played against the throwaway file.
+    assert run_cli(["--db", str(throwaway), "init", "--campaign", "amber_tomb"], env) == {
+        "ok": True,
+        "new_game": True,
+    }
+    assert throwaway.exists()
+
+    # The flag is accepted on either side of the subcommand.
+    after_sub = run_cli(["state", "--db", str(throwaway)], env)
+    assert after_sub["zone"]["zone_name"] == "Tomb of the Amber Pharaoh"
+
+    # ...and the real save is byte-for-byte unchanged.
+    assert real_save.read_bytes() == before
+    assert run_cli(["state"], env)["zone"]["zone_name"] == "The Mechanical Spire"
+
+
 def test_invalid_json_on_stdin_returns_ok_false(tmp_path):
     import os
 
