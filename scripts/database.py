@@ -3,7 +3,8 @@
 Every function here takes an open `sqlite3.Connection` as its first argument
 and performs straightforward row reads/writes — no cross-table business logic
 (coordinate math, edge pairing/locking, validation). That lives in engine.py.
-Schema matches TECHNICAL_DETAILS.md §3 (amending PLAN.md's original schema).
+This module holds the authoritative schema; TECHNICAL_DETAILS.md §3 records
+the reasoning behind the non-obvious parts.
 """
 
 import json

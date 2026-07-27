@@ -1,12 +1,13 @@
 # Technical Details
 
-Implementation spec for the Hermes Adventure Game. This document extends
-`PLAN.md`; where the two disagree, this document wins. It exists so the
-execution phase (Sonnet) can implement mechanically without re-deriving design
-decisions.
+Implementation spec for the Hermes Adventure Game, and the authoritative
+design document. It exists so the execution phase can implement mechanically
+without re-deriving design decisions.
 
-**Superseded parts of PLAN.md:** Phase 4 (LLM prompt specs) and the
-`llm_client.py` / `game_loop.py` items in Phase 5 no longer apply — see §0.
+> An earlier `PLAN.md` sketched a different architecture, calling an LLM from
+> inside the Python code. That approach was abandoned before implementation
+> (see §0), so the file was deleted rather than left to mislead; it remains in
+> git history if you want the original sketch.
 
 ## 0. Architecture: Hermes Agent is the narrator
 
@@ -87,7 +88,7 @@ returned when the target coordinates are truly empty.
 zone theme, starting room at (0, 0, 0), and starting inventory — negotiated
 with the player in SKILL.md's Lobby Mode and piped to `init`. When no payload
 is supplied, `init` falls back to the built-in default campaign hardcoded in
-`config.py` (zone "Mechanical Spire" from PLAN.md Phase 4; starting room
+`config.py` (zone "Mechanical Spire"; starting room
 "Rust-Chamber" with 3 frontier exits and no entities). Either way the payload
 is **persisted** in `game_config.world_init_json`, so `reset` can replay the
 same campaign and `export-world` can share it. Everything beyond the starting
@@ -161,7 +162,11 @@ These schemas are documented verbatim in `SKILL.md` so the agent emits them
 directly. Validation failures return `{"ok": false, "error": ...}` with a
 message specific enough for the agent to fix and retry once.
 
-## 3. Schema amendments to PLAN.md
+## 3. Schema design decisions
+
+`scripts/database.py` holds the authoritative `CREATE TABLE` statements for
+all six tables. This section records *why* the non-obvious ones look the way
+they do.
 
 ### 3.1 `entities`: make location explicit
 
@@ -257,7 +262,8 @@ payload the campaign was seeded from. `reset` (no payload) replays it;
 save game: copying `data/hermes_game.db` transfers a campaign *in progress*, while
 the exported `WorldInit` shares a campaign *from the beginning*.
 
-Everything else in the PLAN.md schema stands as written.
+The remaining tables — `game_config`, `nodes`, `edges`, `player_state` — are
+straightforward; read them in `scripts/database.py`.
 
 ## 4. Movement & generation algorithm (inside the CLI)
 

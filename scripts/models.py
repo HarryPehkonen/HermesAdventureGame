@@ -33,7 +33,7 @@ OPPOSITE_DIRECTION: dict[Direction, Direction] = {
     "down": "up",
 }
 
-# (dx, dy, dz) per TECHNICAL_DETAILS.md / PLAN.md "Standard Coordinate Offsets".
+# (dx, dy, dz) per TECHNICAL_DETAILS.md "Standard Coordinate Offsets".
 DIRECTION_OFFSETS: dict[Direction, tuple[int, int, int]] = {
     "north": (0, 1, 0),
     "south": (0, -1, 0),

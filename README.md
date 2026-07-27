@@ -220,4 +220,4 @@ that sees only the narration and never touches the database.
 | `SKILL.md` | the Game Host contract the agent runs on |
 | `campaigns/` | predefined worlds (`README.md` there explains writing your own) |
 | `references/` | deeper agent-facing guidance |
-| `PLAN.md`, `TECHNICAL_DETAILS.md` | design history and full specification |
+| `TECHNICAL_DETAILS.md` | full design specification and rationale |

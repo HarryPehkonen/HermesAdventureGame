@@ -26,7 +26,7 @@ RECENT_TURNS_LIMIT = 6
 
 STARTING_HP = 100
 
-# Seed zone (game_config) — from PLAN.md Phase 4's example prompt.
+# Seed zone (game_config) — the built-in default campaign.
 ZONE_NAME = "Mechanical Spire"
 ZONE_DESCRIPTION = (
     "An ancient, vertical labyrinth of clockwork gears and leaking steam."
