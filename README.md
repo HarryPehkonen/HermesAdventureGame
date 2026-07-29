@@ -19,7 +19,7 @@ picks up exactly where you left off.
 python -m venv .venv
 .venv/bin/pip install -r requirements.txt
 .venv/bin/pip install -r requirements-dev.txt   # optional: pytest
-.venv/bin/python -m pytest -q                   # optional: verify (114 tests)
+.venv/bin/python -m pytest -q                   # optional: verify (117 tests)
 ```
 
 ## Installing as an agent skill
@@ -202,8 +202,50 @@ turn. Solo play is a good shake-out of room generation, obstacle flags, and
 validation — but calibrate expectations: `SKILL.md` casts the agent as the
 *Host*, so playing alone it invents the rooms, knows every
 `solution_condition`, and grades its own win condition. It cannot surprise
-itself. A genuinely blind run needs two sessions — one hosting, one player
-that sees only the narration and never touches the database.
+itself. For a genuinely blind run, see below.
+
+## Two AIs playing each other
+
+`tools/selfplay.py` runs a real game between two independent models: a **host**
+that gets `SKILL.md` and drives the engine, and a **player** that gets
+**no tools at all** — only the narration text.
+
+```bash
+pip install -r requirements-selfplay.txt
+tools/selfplay.py --campaign amber_tomb --turns 40
+```
+
+The player's blindness is structural, not a rule it's asked to follow: it has
+no way to reach the database, so it cannot read room contents, entity ids, or
+the win flag even if it tries. That's what makes the run mean something.
+
+Provider-agnostic, via [Pydantic AI](https://ai.pydantic.dev) — pass any
+`provider:model` string, or point `--base-url` at any OpenAI-compatible
+endpoint:
+
+```bash
+# different models on each side — the more interesting experiment
+tools/selfplay.py --host-model anthropic:claude-opus-5 \
+                  --player-model openai:gpt-5.2
+
+# anything OpenAI-compatible: Ollama, OpenRouter, vLLM…
+tools/selfplay.py --base-url http://localhost:11434/v1 --host-model llama3
+
+# …including `hermes proxy`, which fronts whatever provider Hermes is
+# signed into — no separate API key needed
+tools/selfplay.py --base-url http://localhost:8100/v1 --host-model <model>
+```
+
+Useful flags: `--db` (throwaway save, default `/tmp/selfplay.db`), `--turns`
+(cap, default 30), `--transcript FILE`. It stops early on a win or a death,
+verified by reading the save rather than by believing the host.
+
+`pydantic-ai` is an **optional** dependency, kept in its own requirements file —
+the engine itself still needs nothing but `pydantic`.
+
+> The harness pins `--db` on every engine call and strips any the models try to
+> pass, so a self-play run cannot reach a real save. `tests/test_selfplay_isolation.py`
+> holds that guarantee down.
 
 ## Project layout
 
@@ -217,6 +259,7 @@ that sees only the narration and never touches the database.
 | `scripts/doctor.py` | save inspector / consistency checker (human-facing) |
 | `data/` | the save file — runtime state, gitignored, auto-created |
 | `install.sh` | symlinks the skill and installs the PATH launchers |
+| `tools/selfplay.py` | two-AI self-play harness (optional, provider-agnostic) |
 | `SKILL.md` | the Game Host contract the agent runs on |
 | `campaigns/` | predefined worlds (`README.md` there explains writing your own) |
 | `references/` | deeper agent-facing guidance |
