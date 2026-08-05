@@ -87,7 +87,7 @@ if [ -z "$SKILLS_DIR" ]; then
     0) SKILLS_DIR="$HERMES_BASE/skills" ;;
     1) SKILLS_DIR="$HERMES_BASE/profiles/${profiles# }/skills" ;;
     *) die "several Hermes profiles found -->$profiles
-       re-run with --profile NAME (per-profile), --global (all profiles),
+       re-run with --profile NAME (per-profile), --global (default profile only),
        or --skills-dir DIR" ;;
   esac
 fi
