@@ -5,7 +5,10 @@
   "starting_room": {
     "room_name": "Excavation Camp",
     "description": "Canvas tents ring a firepit at the lip of a freshly cleared stone stair that descends into the earth. Crates of gear stand half-unpacked, and the desert runs flat and shimmering to the north as far as the eye holds.",
-    "exits": ["north", "down"],
+    "exits": [
+      "north",
+      "down"
+    ],
     "entities": [
       {
         "name": "expedition journal",
@@ -16,7 +19,10 @@
         "solution_condition": null,
         "blocks_direction": null,
         "cleared_by_flag": null,
-        "traits": ["conspicuous", "readable"]
+        "traits": [
+          "conspicuous",
+          "readable"
+        ]
       }
     ]
   },
@@ -30,7 +36,9 @@
       "solution_condition": null,
       "blocks_direction": null,
       "cleared_by_flag": null,
-      "traits": ["light source"]
+      "traits": [
+        "light source"
+      ]
     },
     {
       "name": "excavator's kit",
@@ -41,9 +49,12 @@
       "solution_condition": null,
       "blocks_direction": null,
       "cleared_by_flag": null,
-      "traits": ["tool"]
+      "traits": [
+        "tool"
+      ]
     }
   ],
   "win_flag": "scarab_brought_to_daylight",
-  "win_message": "You climb the last stair with your heart hammering and step into air that smells of woodsmoke and morning. In your hands the Amber Scarab drinks the sunlight and glows from within, like a coal that has waited three thousand years to be warm again. The vault kept its king — but not its treasure. You've won."
+  "win_message": "You climb the last stair with your heart hammering and step into air that smells of woodsmoke and morning. In your hands the Amber Scarab drinks the sunlight and glows from within, like a coal that has waited three thousand years to be warm again. The vault kept its king — but not its treasure. You've won.",
+  "visual_style": "1920s archaeological expedition, warm lantern light on sandstone and gold, dust motes in shafts of sunlight, Art Deco influences, muted desert ochres and deep tomb shadows"
 }

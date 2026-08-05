@@ -29,6 +29,7 @@ session actually needs.
 | `take <entity_id>` | — | pick up an obvious item |
 | `apply` | StateChanges | submit refereed outcomes (damage, items, obstacles, flags) |
 | `log` | `{"player_input", "narrative"}` | manual fallback — append a turn directly; normal play logs via `state`'s stdin instead |
+| `set-images <mode>` | — | set image generation mode: `never`, `on_demand`, `significant_moments`, `always` |
 
 ## Response fields worth knowing
 
@@ -37,14 +38,16 @@ session actually needs.
   (null = endless sandbox), `game_won`, `win_message` (only once won),
   `recent_turns`, `logged_previous_turn` (whether a piped payload was
   written to `turn_log`), `log_error` (present only if the payload was
-  rejected — state is still returned either way).
+  rejected — state is still returned either way),
+  `image_settings` (`mode`: never/on_demand/significant_moments/always,
+  `visual_style`: campaign aesthetic string or null).
 - **`move`**: `moved` + `room`; or `needs_generation` + `context` (theme,
   flags, exiting room, neighbors — respect all of it); or errors
   `no_exit` / `locked` (with `lock_condition`) / `player_dead`. May include
-  `auto_cleared` (see below).
+  `auto_cleared` (see below). May include `generate_image` (see Visuals).
 - **`apply`**: `applied` + `rejected` (narrate only what was applied),
   `player_dead`, and `game_won` + `win_message` when `flags_set` newly sets
-  the campaign's win flag.
+  the campaign's win flag. May include `generate_image` (see Visuals).
 
 ## Mechanics
 

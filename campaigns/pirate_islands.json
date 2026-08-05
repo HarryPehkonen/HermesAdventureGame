@@ -5,7 +5,11 @@
   "starting_room": {
     "room_name": "Deck of the Sparrow's Wake",
     "description": "Your sloop rides at anchor in a quiet cove, sails furled and rigging creaking in a light offshore breeze. Open water stretches away north and east beyond the cove mouth, and a crescent of white beach lies a short row to the west.",
-    "exits": ["north", "east", "west"],
+    "exits": [
+      "north",
+      "east",
+      "west"
+    ],
     "entities": [
       {
         "name": "weathered chart table",
@@ -16,7 +20,10 @@
         "solution_condition": null,
         "blocks_direction": null,
         "cleared_by_flag": null,
-        "traits": ["conspicuous", "readable"]
+        "traits": [
+          "conspicuous",
+          "readable"
+        ]
       }
     ]
   },
@@ -30,7 +37,9 @@
       "solution_condition": null,
       "blocks_direction": null,
       "cleared_by_flag": null,
-      "traits": ["tool"]
+      "traits": [
+        "tool"
+      ]
     },
     {
       "name": "torn map fragment",
@@ -41,9 +50,13 @@
       "solution_condition": null,
       "blocks_direction": null,
       "cleared_by_flag": null,
-      "traits": ["conspicuous", "readable"]
+      "traits": [
+        "conspicuous",
+        "readable"
+      ]
     }
   ],
   "win_flag": "found_blackbeards_gold",
-  "win_message": "The lid gives with a groan that echoes off the cave walls, and your lantern light spills across doubloons, uncut emeralds, and a captain's skeletal hand still curled around the ship's articles. Blackbeard's hoard, found at last. You are rich beyond your wildest dreams — you've won."
+  "win_message": "The lid gives with a groan that echoes off the cave walls, and your lantern light spills across doubloons, uncut emeralds, and a captain's skeletal hand still curled around the ship's articles. Blackbeard's hoard, found at last. You are rich beyond your wildest dreams — you've won.",
+  "visual_style": "1700s nautical oil painting, storm-worn Caribbean islands, dramatic seas and weathered wood, lantern light and overcast skies, muted ocean blues, tar-black, and sail cream"
 }

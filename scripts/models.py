@@ -123,6 +123,7 @@ class WorldInit(BaseModel):
     starting_inventory: list[GeneratedEntity] = []
     win_flag: Optional[str] = None  # flag that completes the campaign; None = endless sandbox
     win_message: Optional[str] = None  # narrated on victory; paired with win_flag
+    visual_style: Optional[str] = None  # aesthetic guidance for image generation (e.g. "1700s nautical oil painting, dramatic lighting, muted ocean blues")
 
     @model_validator(mode="after")
     def _win_condition_is_paired(self) -> "WorldInit":

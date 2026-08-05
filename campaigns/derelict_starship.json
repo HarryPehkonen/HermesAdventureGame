@@ -5,7 +5,10 @@
   "starting_room": {
     "room_name": "Cryo Bay 2",
     "description": "Rows of cryopods line the walls beneath a low ceiling of cable trays, their lids frosted from the inside. Your own pod stands open, still breathing pale vapor across the deck grating. By the forward hatch, a status panel glows on emergency battery.",
-    "exits": ["north", "down"],
+    "exits": [
+      "north",
+      "down"
+    ],
     "entities": [
       {
         "name": "cryo bay status panel",
@@ -16,7 +19,11 @@
         "solution_condition": null,
         "blocks_direction": null,
         "cleared_by_flag": null,
-        "traits": ["conspicuous", "readable", "powered"]
+        "traits": [
+          "conspicuous",
+          "readable",
+          "powered"
+        ]
       }
     ]
   },
@@ -30,9 +37,13 @@
       "solution_condition": null,
       "blocks_direction": null,
       "cleared_by_flag": null,
-      "traits": ["tool", "light source"]
+      "traits": [
+        "tool",
+        "light source"
+      ]
     }
   ],
   "win_flag": "reactor_online",
-  "win_message": "The reactor's hum climbs from a shudder to a steady, rising thrum, and deck lights cascade on down every corridor at once. Vents cough, then breathe. The Erebus is alive again — and so, against every light on that status panel, are you. You've won."
+  "win_message": "The reactor's hum climbs from a shudder to a steady, rising thrum, and deck lights cascade on down every corridor at once. Vents cough, then breathe. The Erebus is alive again — and so, against every light on that status panel, are you. You've won.",
+  "visual_style": "Dark sci-fi horror, emergency lighting on metal bulkheads, flickering screens and coolant mist, deep space blacks with cold blue and warning amber accents, Alien (1979) aesthetic"
 }

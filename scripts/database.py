@@ -95,6 +95,13 @@ def init_schema(conn: sqlite3.Connection) -> None:
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (node_id) REFERENCES nodes(id)
         );
+
+        CREATE TABLE IF NOT EXISTS settings (
+            id INTEGER PRIMARY KEY CHECK (id = 1),
+            image_mode TEXT NOT NULL DEFAULT 'on_demand'
+                CHECK (image_mode IN ('never', 'on_demand', 'significant_moments', 'always')),
+            visual_style TEXT
+        );
         """
     )
 
@@ -331,6 +338,39 @@ def set_player_hp(conn: sqlite3.Connection, hp: int) -> None:
 def set_player_flags(conn: sqlite3.Connection, flags: dict) -> None:
     conn.execute(
         "UPDATE player_state SET state_flags_json = ? WHERE id = 1;", (json.dumps(flags),)
+    )
+
+
+# --- settings -------------------------------------------------------------
+
+def get_image_mode(conn: sqlite3.Connection) -> str:
+    """Current image generation mode. Defaults to 'on_demand' if the settings
+    row doesn't exist yet (pre-existing saves created before this feature)."""
+    row = conn.execute("SELECT image_mode FROM settings WHERE id = 1;").fetchone()
+    return row["image_mode"] if row else "on_demand"
+
+
+def set_image_mode(conn: sqlite3.Connection, mode: str) -> None:
+    """Set the image generation mode. Upserts the singleton settings row."""
+    conn.execute(
+        "INSERT INTO settings (id, image_mode) VALUES (1, ?) "
+        "ON CONFLICT(id) DO UPDATE SET image_mode = excluded.image_mode;",
+        (mode,),
+    )
+
+
+def get_visual_style(conn: sqlite3.Connection) -> Optional[str]:
+    """The campaign-level visual style string, or None if not set."""
+    row = conn.execute("SELECT visual_style FROM settings WHERE id = 1;").fetchone()
+    return row["visual_style"] if row else None
+
+
+def set_visual_style(conn: sqlite3.Connection, style: Optional[str]) -> None:
+    """Set or clear the visual style. Upserts the singleton settings row."""
+    conn.execute(
+        "INSERT INTO settings (id, visual_style) VALUES (1, ?) "
+        "ON CONFLICT(id) DO UPDATE SET visual_style = excluded.visual_style;",
+        (style,),
     )
 
 

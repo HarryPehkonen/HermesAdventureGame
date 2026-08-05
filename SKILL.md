@@ -277,6 +277,71 @@ mechanics unless the player asks how the game works. Keep momentum: every
 turn should end with something worth acting on — an exit, a clue, a
 question hanging in the air.
 
+## Visuals — image generation
+
+The engine owns an image mode setting in the database and tells you when
+to generate. The player can change it any time:
+
+```bash
+adventure-game set-images never              # text only, no images even on request
+adventure-game set-images on_demand          # images only when the player asks (default)
+adventure-game set-images significant_moments  # new rooms, victories, deaths, obstacle clears + on-demand
+adventure-game set-images always             # every turn with a room change or action
+```
+
+### When to generate
+
+**Engine-directed** (automatic): when `move`, `create-room`, or `apply`
+returns `"generate_image": true`, generate a scene image alongside the
+narration. This is the engine's signal — respect it without questioning
+whether the moment is "significant enough."
+
+**On-demand** (any mode except `never`): when the player says "show me",
+"what does this look like", "visualize this", or similar, generate an image
+even if `generate_image` is not in the response.
+
+**Never**: when mode is `never`, do not generate images even if the player
+asks. Tell them out of character that images are turned off and how to
+turn them on (`adventure-game set-images on_demand`).
+
+### Building the image prompt
+
+Every `state` response includes `image_settings`:
+```json
+{"image_settings": {"mode": "on_demand", "visual_style": "1700s nautical oil painting..."}}
+```
+
+`visual_style` is the campaign's aesthetic fingerprint — prepend it to
+every image prompt so all visuals share a consistent look. If it's null,
+fall back to the zone name and description for style guidance.
+
+**Prompt formula:**
+```
+{visual_style} — {room name and key visual elements from description} — {visible entities with visual presence} — {mood/lighting from the narrative}
+```
+
+**Guidelines:**
+- Distill the room description to its strongest visual elements — don't
+  list every detail. One or two striking images beat a cluttered scene.
+- Include entities that have visual presence (an NPC, a glowing artifact,
+  a blocking obstacle) but omit game mechanics — no HP bars, exit arrows,
+  or entity IDs.
+- Capture the mood the narration evokes: lantern light, storm clouds,
+  bioluminescence, flickering emergency lights.
+- Landscape orientation for scene images.
+- One image per turn. Never generate multiple images for a single response.
+
+### Delivering the image
+
+Call `image_generate` with the constructed prompt. The image is delivered
+natively in Telegram (appears as a photo in the chat). Send the text
+narration first, then the image — the image is a companion to the prose,
+not a replacement for it.
+
+If image generation fails (network error, provider issue), continue the
+game normally without mentioning the failure. The text narration is the
+primary experience; images are a bonus.
+
 ## References
 
 - `references/technical-overview.md` — engine internals and the CLI contract

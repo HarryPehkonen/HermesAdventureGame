@@ -5,7 +5,11 @@
   "starting_room": {
     "room_name": "Reading Rotunda",
     "description": "A domed rotunda ringed by reading desks, its oculus dimly glowing far overhead. Marble stairs descend toward the stacks on two sides, and the air tastes of wet stone and old paper.",
-    "exits": ["north", "east", "down"],
+    "exits": [
+      "north",
+      "east",
+      "down"
+    ],
     "entities": [
       {
         "name": "brass pump console",
@@ -16,7 +20,11 @@
         "solution_condition": null,
         "blocks_direction": null,
         "cleared_by_flag": null,
-        "traits": ["conspicuous", "machine", "readable"]
+        "traits": [
+          "conspicuous",
+          "machine",
+          "readable"
+        ]
       }
     ]
   },
@@ -30,7 +38,9 @@
       "solution_condition": null,
       "blocks_direction": null,
       "cleared_by_flag": null,
-      "traits": ["light source"]
+      "traits": [
+        "light source"
+      ]
     },
     {
       "name": "waxed document satchel",
@@ -41,9 +51,13 @@
       "solution_condition": null,
       "blocks_direction": null,
       "cleared_by_flag": null,
-      "traits": ["container", "waterproof"]
+      "traits": [
+        "container",
+        "waterproof"
+      ]
     }
   ],
   "win_flag": "founders_folio_recovered",
-  "win_message": "The vault seal turns with a sigh of equalizing air, and there it lies on its stone cradle, dry as the day it was shelved: the Founders' Folio. As you lift it into the satchel, the Archive seems to settle around you — as if the whole drowned house of knowledge had been holding its breath. You've won."
+  "win_message": "The vault seal turns with a sigh of equalizing air, and there it lies on its stone cradle, dry as the day it was shelved: the Founders' Folio. As you lift it into the satchel, the Archive seems to settle around you — as if the whole drowned house of knowledge had been holding its breath. You've won.",
+  "visual_style": "Flooded subterranean library, water-damaged books and stone colonnades, bioluminescent glow and lantern reflections on dark water, muted teals and aged parchment tones"
 }

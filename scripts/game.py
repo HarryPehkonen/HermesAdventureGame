@@ -125,6 +125,10 @@ def cmd_log(conn, args):
     return engine.log_turn(conn, entry.player_input, entry.narrative)
 
 
+def cmd_set_images(conn, args):
+    return engine.set_image_mode(conn, args.mode)
+
+
 COMMANDS = {
     "init": cmd_init,
     "reset": cmd_reset,
@@ -135,6 +139,7 @@ COMMANDS = {
     "apply": cmd_apply,
     "take": cmd_take,
     "log": cmd_log,
+    "set-images": cmd_set_images,
 }
 
 
@@ -196,6 +201,18 @@ def build_parser() -> argparse.ArgumentParser:
         "log",
         help='append {"player_input", "narrative"} JSON on stdin to turn_log — manual '
         "fallback; normal play logs via `state` (see above)",
+    )
+
+    images_p = sub.add_parser(
+        "set-images",
+        help="set the image generation mode: never, on_demand, significant_moments, or always",
+    )
+    images_p.add_argument(
+        "mode",
+        choices=["never", "on_demand", "significant_moments", "always"],
+        help="never = text only; on_demand = images when player asks; "
+        "significant_moments = new rooms, victories, deaths, obstacle clears; "
+        "always = every turn with a room change or action",
     )
 
     for subparser in sub.choices.values():

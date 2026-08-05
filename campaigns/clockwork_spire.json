@@ -5,7 +5,10 @@
   "starting_room": {
     "room_name": "Boiler Undercroft",
     "description": "A vaulted brick chamber at the spire's root, ringed by riveted flanks of boilers the size of houses. Coal chutes gape empty along one wall, and every pipe overhead runs upward, converging somewhere far above in the dark.",
-    "exits": ["north", "up"],
+    "exits": [
+      "north",
+      "up"
+    ],
     "entities": [
       {
         "name": "cold master boiler",
@@ -16,7 +19,10 @@
         "solution_condition": null,
         "blocks_direction": null,
         "cleared_by_flag": null,
-        "traits": ["conspicuous", "machine"]
+        "traits": [
+          "conspicuous",
+          "machine"
+        ]
       }
     ]
   },
@@ -30,9 +36,13 @@
       "solution_condition": null,
       "blocks_direction": null,
       "cleared_by_flag": null,
-      "traits": ["tool", "heavy"]
+      "traits": [
+        "tool",
+        "heavy"
+      ]
     }
   ],
   "win_flag": "great_clock_wound",
-  "win_message": "Somewhere above you the escapement catches, holds — and releases. The first strike of the Great Clock rolls down through every gallery and gearwell like slow thunder, and the whole spire shudders into motion around you, alive for the first time in an age. You've won."
+  "win_message": "Somewhere above you the escapement catches, holds — and releases. The first strike of the Great Clock rolls down through every gallery and gearwell like slow thunder, and the whole spire shudders into motion around you, alive for the first time in an age. You've won.",
+  "visual_style": "Steampunk clockwork interior, brass and copper gears, steam wisps in amber light, rusted iron and oiled leather, industrial Victorian palette of browns, brass, and verdigris"
 }

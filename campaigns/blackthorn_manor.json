@@ -5,7 +5,11 @@
   "starting_room": {
     "room_name": "Entrance Hall",
     "description": "A high entrance hall where your footsteps wake echoes that take too long to die. A grand staircase climbs into darkness, doorways open east and north beneath unlit sconces, and every piece of furniture wears a dust sheet like a shroud.",
-    "exits": ["north", "east", "up"],
+    "exits": [
+      "north",
+      "east",
+      "up"
+    ],
     "entities": [
       {
         "name": "shrouded portrait",
@@ -16,7 +20,9 @@
         "solution_condition": null,
         "blocks_direction": null,
         "cleared_by_flag": null,
-        "traits": ["conspicuous"]
+        "traits": [
+          "conspicuous"
+        ]
       }
     ]
   },
@@ -30,7 +36,9 @@
       "solution_condition": null,
       "blocks_direction": null,
       "cleared_by_flag": null,
-      "traits": ["light source"]
+      "traits": [
+        "light source"
+      ]
     },
     {
       "name": "housekeeper's letter",
@@ -41,9 +49,13 @@
       "solution_condition": null,
       "blocks_direction": null,
       "cleared_by_flag": null,
-      "traits": ["conspicuous", "readable"]
+      "traits": [
+        "conspicuous",
+        "readable"
+      ]
     }
   ],
   "win_flag": "curse_lifted",
-  "win_message": "The name hangs in the air for one long moment — and then every stopped clock in Blackthorn Manor begins to tick at once. Warmth creeps back into the walls, the portraits are only paintings again, and somewhere upstairs a window opens on its own to let the morning in. The house is at peace. You've won."
+  "win_message": "The name hangs in the air for one long moment — and then every stopped clock in Blackthorn Manor begins to tick at once. Warmth creeps back into the walls, the portraits are only paintings again, and somewhere upstairs a window opens on its own to let the morning in. The house is at peace. You've won.",
+  "visual_style": "Gothic horror oil painting, candlelit Victorian manor, deep shadows and pale moonlight through mullioned windows, muted browns and cold blues, Pre-Raphaelite atmosphere"
 }

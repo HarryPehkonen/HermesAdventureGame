@@ -65,6 +65,12 @@ def _seed_new_game(conn: sqlite3.Connection, world: WorldInit) -> None:
 
     database.insert_player_state(conn, node_id, config.STARTING_HP, config.STARTING_HP)
 
+    # Seed image settings: default mode from config, visual style from the
+    # campaign's WorldInit (if provided). Upserts so a reset overwrites the
+    # previous campaign's style.
+    database.set_image_mode(conn, config.DEFAULT_IMAGE_MODE)
+    database.set_visual_style(conn, world.visual_style)
+
 
 def init_game(conn: sqlite3.Connection, world: Optional[WorldInit] = None) -> dict:
     database.init_schema(conn)
@@ -104,6 +110,40 @@ def export_world(conn: sqlite3.Connection) -> dict:
     if stored is None:
         return {"ok": False, "error": "not_initialized"}
     return {"ok": True, "world": json.loads(stored)}
+
+
+# --- image directives ----------------------------------------------------
+
+# Which modes trigger automatic image generation at each event type.
+# 'on_demand' never auto-generates — the player must explicitly ask.
+_IMAGE_TRIGGERS = {
+    "new_room": {"significant_moments", "always"},
+    "victory": {"significant_moments", "always"},
+    "death": {"significant_moments", "always"},
+    "obstacle_cleared": {"significant_moments", "always"},
+    "action": {"always"},
+}
+
+
+def _image_directive(conn: sqlite3.Connection, event: str) -> bool:
+    """Should the engine tell the agent to generate an image for this event?
+
+    Reads the current image_mode from the settings table and checks whether
+    it's in the trigger set for this event type. The agent still decides how
+    to build the prompt — this is just the engine's 'yes, do it' signal.
+    """
+    mode = database.get_image_mode(conn)
+    if mode == "never":
+        return False
+    return mode in _IMAGE_TRIGGERS.get(event, set())
+
+
+def _image_directive_for_move(conn: sqlite3.Connection, moved_to_new_room: bool) -> bool:
+    """Generate on 'always' for any move, or on 'significant_moments' for a
+    new room. A move to an already-visited room is not 'significant'."""
+    if moved_to_new_room:
+        return _image_directive(conn, "new_room")
+    return _image_directive(conn, "action")
 
 
 # --- state assembly ----------------------------------------------------
@@ -160,6 +200,8 @@ def get_full_state(conn: sqlite3.Connection) -> dict:
     # whether it has been met (§5.6).
     win_flag, win_message = _win_info(conn)
     game_won = bool(win_flag and flags.get(win_flag))
+    image_mode = database.get_image_mode(conn)
+    visual_style = database.get_visual_style(conn)
     return {
         "zone": dict(zone) if zone else None,
         "room": room,
@@ -172,6 +214,10 @@ def get_full_state(conn: sqlite3.Connection) -> dict:
         "game_won": game_won,
         "win_message": win_message if game_won else None,
         "recent_turns": recent_turns,
+        "image_settings": {
+            "mode": image_mode,
+            "visual_style": visual_style,
+        },
     }
 
 
@@ -245,6 +291,8 @@ def move(conn: sqlite3.Connection, direction: str) -> dict:
         result = {"ok": True, "moved": True, "room": _room_view(conn, edge["to_node_id"])}
         if auto_cleared:
             result["auto_cleared"] = auto_cleared
+        if _image_directive_for_move(conn, moved_to_new_room=False):
+            result["generate_image"] = True
         return result
 
     # Frontier: check whether the target coordinates already have a room
@@ -296,6 +344,8 @@ def move(conn: sqlite3.Connection, direction: str) -> dict:
             result = {"ok": True, "moved": True, "room": _room_view(conn, target_node["id"])}
             if auto_cleared:
                 result["auto_cleared"] = auto_cleared
+            if _image_directive_for_move(conn, moved_to_new_room=False):
+                result["generate_image"] = True
             return result
         else:
             # Neighbor exists but doesn't connect back to us — a wall on
@@ -478,6 +528,8 @@ def create_room(conn: sqlite3.Connection, direction: str, room: RoomGeneration) 
     result = {"ok": True, "room": _room_view(conn, node_id)}
     if auto_cleared:
         result["auto_cleared"] = auto_cleared
+    if _image_directive(conn, "new_room"):
+        result["generate_image"] = True
     return result
 
 
@@ -640,6 +692,19 @@ def apply_changes(conn: sqlite3.Connection, changes: StateChanges) -> dict:
         # the player is free to keep exploring. Dying still does.
         result["game_won"] = True
         result["win_message"] = win_message
+    # Image directives: victory, death, and obstacle clears are significant.
+    # On 'always' mode, any apply with applied changes triggers an image.
+    if new_hp <= 0:
+        if _image_directive(conn, "death"):
+            result["generate_image"] = True
+    elif newly_won:
+        if _image_directive(conn, "victory"):
+            result["generate_image"] = True
+    elif applied.get("obstacles_cleared_entity_ids") or applied.get("auto_cleared_obstacles"):
+        if _image_directive(conn, "obstacle_cleared"):
+            result["generate_image"] = True
+    elif applied and _image_directive(conn, "action"):
+        result["generate_image"] = True
     return result
 
 
@@ -648,3 +713,13 @@ def log_turn(conn: sqlite3.Connection, player_input: str, narrative: str) -> dic
     with conn:
         database.insert_turn_log(conn, player_row["current_node_id"], player_input, narrative)
     return {"ok": True}
+
+
+def set_image_mode(conn: sqlite3.Connection, mode: str) -> dict:
+    """Change the image generation mode at the player's request."""
+    valid = {"never", "on_demand", "significant_moments", "always"}
+    if mode not in valid:
+        return {"ok": False, "error": "invalid_mode", "details": f"mode must be one of: {', '.join(sorted(valid))}"}
+    with conn:
+        database.set_image_mode(conn, mode)
+    return {"ok": True, "image_mode": mode}

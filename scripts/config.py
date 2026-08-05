@@ -26,6 +26,13 @@ RECENT_TURNS_LIMIT = 6
 
 STARTING_HP = 100
 
+# Default image generation mode for new games.
+# 'never' — text only, no images even on request
+# 'on_demand' — images when the player asks ("show me")
+# 'significant_moments' — new rooms, victories, deaths, obstacle clears + on-demand
+# 'always' — every turn involving a room change or action
+DEFAULT_IMAGE_MODE = "on_demand"
+
 # Seed zone (game_config) — the built-in default campaign.
 ZONE_NAME = "Mechanical Spire"
 ZONE_DESCRIPTION = (
